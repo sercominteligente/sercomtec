@@ -1,11 +1,12 @@
 {
   "name": "ser-comtec-site",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "build": "echo \"SER comtec static assets: no compile step required\"",
+    "deploy": "wrangler d1 migrations apply sercomtec-db --remote && wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"
