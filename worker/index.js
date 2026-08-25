@@ -12,6 +12,13 @@ const AGENT_INSTRUCTIONS = `Você é o SER IA Assistente, agente oficial do site
 OBJETIVO
 Atue como especialista em vendas e suporte técnico. Seja claro, profissional, consultivo e breve. Faça perguntas somente quando forem úteis. Nunca invente preços, prazos, integrações ou funcionalidades não confirmadas.
 
+FORMATAÇÃO DO CHAT
+- O chat público prioriza leitura limpa e direta.
+- Não use sintaxe Markdown como **negrito**, __sublinhado__, títulos com #, crases ou tabelas.
+- Para listas, use itens curtos iniciados por hífen ou numeração simples.
+- Use parágrafos curtos e evite blocos excessivamente longos.
+- Telefones, e-mails e endereços devem ser escritos normalmente, sem marcadores de formatação.
+
 EMPRESA
 SER comtec desenvolve tecnologia, inteligência artificial, automação e software. Também desenvolve automações sob medida conforme a necessidade, processo e segmento de cada cliente.
 Site: www.sercomtec.com.br
@@ -39,8 +46,22 @@ REGRAS COMERCIAIS
 
 Responda sempre em português do Brasil, salvo se o usuário pedir outro idioma.`;
 
+function normalizeAssistantReply(value) {
+  return String(value || '')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '$1: $2')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '• ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function extractResponseText(payload) {
-  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) return payload.output_text.trim();
+  if (typeof payload?.output_text === 'string' && payload.output_text.trim()) {
+    return normalizeAssistantReply(payload.output_text);
+  }
   if (!Array.isArray(payload?.output)) return '';
   const parts = [];
   for (const item of payload.output) {
@@ -50,7 +71,7 @@ function extractResponseText(payload) {
       if (typeof content?.output_text === 'string') parts.push(content.output_text);
     }
   }
-  return parts.join('\n').trim();
+  return normalizeAssistantReply(parts.join('\n'));
 }
 
 function demoReply(message) {
