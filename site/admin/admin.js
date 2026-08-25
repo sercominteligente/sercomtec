@@ -1,225 +1,114 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => [...document.querySelectorAll(s)];
-  const state = { leads: [], tickets: [], files: [], selectedLead: null, overview: null };
+  const state = { user:null, overview:null, leads:[], tickets:[], files:[], portfolio:[], products:[], legal:[], users:[], connectors:[], selectedLead:null };
 
   const titles = {
-    dashboard: 'Visão geral', leads: 'Leads', support: 'Suporte', files: 'Arquivos',
-    ai: 'IA & automações', products: 'Produtos', site: 'Conteúdo do site',
-    integrations: 'Integrações', settings: 'Configurações'
+    dashboard:'Visão geral', leads:'Leads', portfolio:'Portfólio', support:'Suporte', files:'Arquivos',
+    products:'Produtos', site:'Conteúdo do site', legal:'Políticas & termos', ai:'IA & automações',
+    integrations:'Integrações', users:'Usuários', settings:'Configurações'
   };
 
   const esc = (value) => String(value ?? '');
   const formatDate = (iso) => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return esc(iso);
-    return new Intl.DateTimeFormat('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }).format(d);
+    if (!iso) return '—'; const d = new Date(iso); if (Number.isNaN(d.getTime())) return esc(iso);
+    return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}).format(d);
   };
-  const bytes = (size) => {
-    const n = Number(size || 0);
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 ** 2) return `${(n/1024).toFixed(1)} KB`;
-    if (n < 1024 ** 3) return `${(n/1024**2).toFixed(1)} MB`;
-    return `${(n/1024**3).toFixed(1)} GB`;
+  const bytes = (size) => { const n=Number(size||0); if(n<1024)return `${n} B`; if(n<1024**2)return `${(n/1024).toFixed(1)} KB`; if(n<1024**3)return `${(n/1024**2).toFixed(1)} MB`; return `${(n/1024**3).toFixed(1)} GB`; };
+  const api = async (path, options={}) => {
+    const response = await fetch(path,{credentials:'same-origin',...options,headers:{'content-type':'application/json',...(options.headers||{})}});
+    let data={};try{data=await response.json();}catch{}
+    if(!response.ok){const error=new Error(data.error||`Erro ${response.status}`);error.status=response.status;error.data=data;throw error;}return data;
   };
-  const api = async (path, options = {}) => {
-    const res = await fetch(path, { credentials:'same-origin', ...options, headers:{ 'content-type':'application/json', ...(options.headers || {}) } });
-    let data = {};
-    try { data = await res.json(); } catch {}
-    if (!res.ok) {
-      const error = new Error(data.error || `Erro ${res.status}`);
-      error.status = res.status;
-      error.data = data;
-      throw error;
-    }
-    return data;
+  const uploadImage = async (file, kind, name='imagem') => {
+    if(!file)return '';
+    const response=await fetch(`/api/admin/upload?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(name)}`,{method:'POST',credentials:'same-origin',headers:{'content-type':file.type},body:file});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'Falha no upload');return data.url;
   };
+  const notify = (message) => { if(message) alert(message); };
 
-  const showAccessIssue = (message) => {
-    const banner = $('#access-banner');
-    banner.hidden = false;
-    $('#access-message').textContent = message;
-  };
+  const showAccessIssue = (message) => { $('#access-banner').hidden=false; $('#access-message').textContent=message; };
+  const hideAccessIssue = () => { $('#access-banner').hidden=true; };
 
   const switchView = (name) => {
-    $$('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
-    $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    $('#page-title').textContent = titles[name] || 'Administração';
-    $('#sidebar').classList.remove('open');
-    if (name === 'leads') loadLeads();
-    if (name === 'support') loadTickets();
-    if (name === 'files') loadFiles();
-    if (name === 'integrations') renderIntegrations();
+    $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
+    $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+    $('#page-title').textContent=titles[name]||'Administração';$('#sidebar').classList.remove('open');
+    const loaders={leads:loadLeads,portfolio:loadPortfolio,support:loadTickets,files:loadFiles,products:loadProducts,site:loadSiteSettings,legal:loadLegal,integrations:loadConnectors,users:loadUsers};
+    loaders[name]?.();
   };
-  $$('.nav-item').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
-  $$('[data-open-view]').forEach(b => b.addEventListener('click', () => switchView(b.dataset.openView)));
-  $('#mobile-nav-toggle').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
+  $$('.nav-item').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  $$('[data-open-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.openView)));
+  $('#mobile-nav-toggle')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 
-  const statusChip = (status) => {
-    const span = document.createElement('span');
-    span.className = `status-chip ${esc(status).toLowerCase()}`;
-    span.textContent = esc(status || 'novo');
-    return span;
-  };
+  const statusChip = (status) => { const span=document.createElement('span');span.className=`status-chip ${esc(status).toLowerCase()}`;span.textContent=esc(status||'novo');return span; };
 
   const loadSession = async () => {
-    try {
-      const data = await api('/api/admin/session');
-      const email = data.user?.email || 'Administrador';
-      $('#user-email').textContent = email;
-      $('#user-name').textContent = email.split('@')[0] || 'Administrador';
-      $('#user-initial').textContent = email.slice(0,1).toUpperCase();
-      return true;
-    } catch (error) {
-      if (error.status === 503) showAccessIssue('Cloudflare Access ainda precisa receber Team Domain e Audience no Worker. A interface está pronta, mas os dados administrativos permanecem bloqueados.');
-      else if (error.status === 401 || error.status === 403) showAccessIssue('Sua sessão administrativa não foi validada. Entre pelo Cloudflare Access para liberar os dados.');
-      else showAccessIssue('Não foi possível validar o acesso administrativo agora.');
-      return false;
-    }
+    try{
+      const data=await api('/api/admin/session');state.user=data.user;
+      const user=data.user||{};$('#user-email').textContent=user.email||'SER comtec';$('#user-name').textContent=user.name||'Administrador';$('#user-initial').textContent=(user.name||user.email||'S').slice(0,1).toUpperCase();hideAccessIssue();return true;
+    }catch(error){if(error.status===401){location.replace('/');return false;}showAccessIssue(error.message||'Sessão administrativa indisponível.');return false;}
   };
 
   const loadOverview = async () => {
-    try {
-      const data = await api('/api/admin/overview');
-      state.overview = data;
-      $('#stat-new-leads').textContent = data.leads?.new ?? 0;
-      $('#stat-total-leads').textContent = data.leads?.total ?? 0;
-      $('#stat-open-tickets').textContent = data.support?.open ?? 0;
-      $('#stat-files').textContent = data.files?.visible ?? 0;
-      $('#nav-leads-count').textContent = data.leads?.new ?? 0;
-      const services = data.health || {};
-      const active = [services.db, services.files, services.openai, services.webhook].filter(Boolean).length;
-      $('#health-score').textContent = `${active}/4`;
-      $('#ai-model').textContent = data.openaiModel || 'Modelo configurado';
-      $('#webhook-status').textContent = services.webhook ? 'Webhook configurado' : 'Webhook não configurado';
-      renderHealth(services);
-      renderRecentLeads(data.recentLeads || []);
-      renderIntegrations();
-    } catch (error) {
-      $('#recent-leads').textContent = 'Dados administrativos indisponíveis até a autenticação ser validada.';
-      $('#infra-health').textContent = 'Aguardando Cloudflare Access.';
-    }
+    try{
+      const data=await api('/api/admin/overview');state.overview=data;
+      $('#stat-new-leads').textContent=data.leads?.new??0;$('#stat-total-leads').textContent=data.leads?.total??0;$('#stat-open-tickets').textContent=data.support?.open??0;$('#stat-portfolio').textContent=data.portfolio?.total??0;$('#nav-leads-count').textContent=data.leads?.new??0;
+      const h=data.health||{};const active=[h.db,h.files,h.openai,h.webhook,h.resend].filter(Boolean).length;$('#health-score').textContent=`${active}/5`;$('#ai-model').textContent=data.openaiModel||'Modelo configurado';$('#webhook-status').textContent=h.webhook?'Webhook configurado':'Webhook pendente';$('#resend-status').textContent=h.resend?'Resend ativo':'Resend pendente';renderHealth(h);renderRecentLeads(data.recentLeads||[]);renderIntegrations(h);
+    }catch(error){showAccessIssue(error.message||'Não foi possível carregar a visão geral.');}
   };
-
-  const renderHealth = (health) => {
-    const items = [
-      ['D1', 'Banco de dados', health.db], ['R2', 'Arquivos', health.files],
-      ['OpenAI', 'SER IA Assistente', health.openai], ['Webhook', 'Leads / n8n', health.webhook]
-    ];
-    const root = $('#infra-health'); root.innerHTML = '';
-    items.forEach(([name, desc, ok]) => {
-      const row = document.createElement('div'); row.className = `health-row ${ok ? 'ok':''}`;
-      const dot = document.createElement('i'); const text = document.createElement('div');
-      const strong = document.createElement('strong'); strong.textContent = name;
-      const small = document.createElement('span'); small.textContent = desc;
-      text.append(strong, small);
-      const status = document.createElement('span'); status.textContent = ok ? 'Ativo' : 'Pendente';
-      row.append(dot, text, status); root.appendChild(row);
-    });
+  const renderHealth = (h) => {
+    const root=$('#infra-health');root.innerHTML='';[['D1','Banco de dados',h.db],['R2','Arquivos',h.files],['OpenAI','SER IA Assistente',h.openai],['Webhook','Leads / n8n',h.webhook],['Resend','E-mail',h.resend]].forEach(([name,desc,ok])=>{const row=document.createElement('div');row.className=`health-row ${ok?'ok':''}`;row.innerHTML=`<i></i><div><strong>${name}</strong><span>${desc}</span></div><span>${ok?'Ativo':'Pendente'}</span>`;root.appendChild(row);});
   };
-
-  const renderRecentLeads = (leads) => {
-    const root = $('#recent-leads'); root.innerHTML = '';
-    if (!leads.length) { root.textContent = 'Nenhum lead recebido ainda.'; return; }
-    leads.forEach(lead => {
-      const row = document.createElement('div'); row.className = 'compact-lead';
-      const who = document.createElement('div'); const name = document.createElement('strong'); name.textContent = lead.nome;
-      const company = document.createElement('small'); company.textContent = lead.empresa || lead.email; who.append(name, company);
-      const interest = document.createElement('small'); interest.textContent = Array.isArray(lead.interests) && lead.interests.length ? lead.interests.join(', ') : 'Sem interesse marcado';
-      row.append(who, interest, statusChip(lead.status)); root.appendChild(row);
-    });
-  };
+  const renderRecentLeads = (items) => { const root=$('#recent-leads');root.innerHTML='';if(!items.length){root.textContent='Nenhum lead recebido ainda.';return;}items.forEach(lead=>{const row=document.createElement('div');row.className='compact-lead';const who=document.createElement('div');const strong=document.createElement('strong');strong.textContent=lead.nome;const small=document.createElement('small');small.textContent=lead.empresa||lead.email;who.append(strong,small);const interest=document.createElement('small');interest.textContent=lead.interests?.join(', ')||'Sem interesse marcado';row.append(who,interest,statusChip(lead.status));root.appendChild(row);}); };
 
   const loadLeads = async () => {
-    const tbody = $('#leads-table');
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Carregando leads…</td></tr>';
-    const q = $('#lead-search').value.trim(); const status = $('#lead-status-filter').value;
-    try {
-      const data = await api(`/api/admin/leads?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`);
-      state.leads = data.items || [];
-      renderLeads();
-    } catch (error) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Não foi possível carregar os leads. Verifique o Cloudflare Access.</td></tr>';
-    }
+    const tbody=$('#leads-table');tbody.innerHTML='<tr><td colspan="6" class="empty-state">Carregando…</td></tr>';const q=$('#lead-search').value.trim(),status=$('#lead-status-filter').value;
+    try{const data=await api(`/api/admin/leads?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`);state.leads=data.items||[];renderLeads();}catch(error){tbody.innerHTML=`<tr><td colspan="6" class="empty-state">${esc(error.message)}</td></tr>`;}
   };
-
   const renderLeads = () => {
-    const tbody = $('#leads-table'); tbody.innerHTML = '';
-    if (!state.leads.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhum lead encontrado.</td></tr>'; return; }
-    state.leads.forEach(lead => {
-      const tr = document.createElement('tr');
-      const leadCell = document.createElement('td'); const n = document.createElement('strong'); n.textContent = lead.nome;
-      const c = document.createElement('small'); c.textContent = lead.empresa || lead.segmento || 'Sem empresa'; leadCell.append(n,c);
-      const interest = document.createElement('td'); interest.textContent = lead.interests?.join(', ') || '—';
-      const contact = document.createElement('td'); const e = document.createElement('strong'); e.textContent = lead.email; const p = document.createElement('small'); p.textContent = lead.whatsapp; contact.append(e,p);
-      const status = document.createElement('td'); status.appendChild(statusChip(lead.status));
-      const date = document.createElement('td'); date.textContent = formatDate(lead.created_at);
-      const action = document.createElement('td'); const button = document.createElement('button'); button.className = 'row-action'; button.textContent = 'Abrir'; button.addEventListener('click', () => openLead(lead)); action.appendChild(button);
-      tr.append(leadCell,interest,contact,status,date,action); tbody.appendChild(tr);
-    });
+    const tbody=$('#leads-table');tbody.innerHTML='';if(!state.leads.length){tbody.innerHTML='<tr><td colspan="6" class="empty-state">Nenhum lead encontrado.</td></tr>';return;}
+    state.leads.forEach(lead=>{const tr=document.createElement('tr');const leadCell=document.createElement('td');const n=document.createElement('strong');n.textContent=lead.nome;const c=document.createElement('small');c.textContent=lead.empresa||lead.segmento||'Sem empresa';leadCell.append(n,c);const interest=document.createElement('td');interest.textContent=lead.interests?.join(', ')||'—';const contact=document.createElement('td');const e=document.createElement('strong');e.textContent=lead.email;const p=document.createElement('small');p.textContent=lead.whatsapp;contact.append(e,p);const st=document.createElement('td');st.appendChild(statusChip(lead.status));const date=document.createElement('td');date.textContent=formatDate(lead.created_at);const action=document.createElement('td');const button=document.createElement('button');button.className='row-action';button.textContent='Abrir';button.addEventListener('click',()=>openLead(lead));action.appendChild(button);tr.append(leadCell,interest,contact,st,date,action);tbody.appendChild(tr);});
   };
+  const openLead = (lead) => {state.selectedLead=lead;$('#dialog-name').textContent=lead.nome;$('#dialog-company').textContent=[lead.empresa,lead.segmento].filter(Boolean).join(' • ')||'Lead recebido pelo site';const d=$('#dialog-details');d.innerHTML='';[['E-mail',lead.email],['WhatsApp',lead.whatsapp],['Interesse',lead.interests?.join(', ')||'—'],['Mensagem',lead.mensagem||'—'],['Recebido',formatDate(lead.created_at)]].forEach(([label,value])=>{const row=document.createElement('div'),b=document.createElement('strong');b.textContent=`${label}: `;row.append(b,document.createTextNode(value));d.appendChild(row);});$('#dialog-status').value=lead.status||'novo';$('#dialog-assigned').value=lead.assigned_to||'';$('#dialog-notes').value=lead.notes||'';$('#lead-dialog').showModal();};
+  $('#save-lead')?.addEventListener('click',async()=>{if(!state.selectedLead)return;const button=$('#save-lead');button.disabled=true;try{await api(`/api/admin/leads/${encodeURIComponent(state.selectedLead.id)}`,{method:'PATCH',body:JSON.stringify({status:$('#dialog-status').value,assigned_to:$('#dialog-assigned').value.trim(),notes:$('#dialog-notes').value.trim()})});$('#lead-dialog').close();await Promise.all([loadLeads(),loadOverview()]);}catch(e){notify(e.message);}finally{button.disabled=false;}});
+  $('#refresh-leads')?.addEventListener('click',loadLeads);$('#lead-status-filter')?.addEventListener('change',loadLeads);let searchTimer;$('#lead-search')?.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(loadLeads,350);});
 
-  const openLead = (lead) => {
-    state.selectedLead = lead;
-    $('#dialog-name').textContent = lead.nome;
-    $('#dialog-company').textContent = [lead.empresa, lead.segmento].filter(Boolean).join(' • ') || 'Lead recebido pelo site';
-    const d = $('#dialog-details'); d.innerHTML = '';
-    [['E-mail',lead.email],['WhatsApp',lead.whatsapp],['Interesse',lead.interests?.join(', ') || '—'],['Mensagem',lead.mensagem || '—'],['Recebido',formatDate(lead.created_at)]].forEach(([label,value]) => {
-      const row = document.createElement('div'); const b = document.createElement('strong'); b.textContent = `${label}: `; row.append(b, document.createTextNode(value)); d.appendChild(row);
-    });
-    $('#dialog-status').value = lead.status || 'novo';
-    $('#dialog-notes').value = lead.notes || '';
-    $('#lead-dialog').showModal();
-  };
+  const loadTickets = async () => {const tbody=$('#tickets-table');tbody.innerHTML='<tr><td colspan="5" class="empty-state">Carregando…</td></tr>';try{const data=await api('/api/admin/tickets');state.tickets=data.items||[];tbody.innerHTML='';if(!state.tickets.length){tbody.innerHTML='<tr><td colspan="5" class="empty-state">Nenhum chamado.</td></tr>';return;}state.tickets.forEach(t=>{const tr=document.createElement('tr');[t.subject||t.requester_name||'Chamado',t.product||'—',t.priority||'normal',t.status||'aberto',formatDate(t.updated_at||t.created_at)].forEach((v,i)=>{const td=document.createElement('td');if(i===0){const s=document.createElement('strong');s.textContent=v;td.appendChild(s);}else td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);});}catch(e){tbody.innerHTML=`<tr><td colspan="5" class="empty-state">${esc(e.message)}</td></tr>`;}};
+  $('#refresh-tickets')?.addEventListener('click',loadTickets);
 
-  $('#save-lead').addEventListener('click', async () => {
-    if (!state.selectedLead) return;
-    const button = $('#save-lead'); button.disabled = true; button.textContent = 'Salvando…';
-    try {
-      const data = await api(`/api/admin/leads/${encodeURIComponent(state.selectedLead.id)}`, { method:'PATCH', body:JSON.stringify({ status:$('#dialog-status').value, notes:$('#dialog-notes').value.trim() }) });
-      state.selectedLead = data.item;
-      $('#lead-dialog').close();
-      await Promise.all([loadLeads(), loadOverview()]);
-    } catch (error) { alert(error.message || 'Não foi possível salvar.'); }
-    finally { button.disabled = false; button.textContent = 'Salvar alterações'; }
-  });
+  const loadFiles = async () => {const root=$('#files-grid');root.innerHTML='<div class="empty-card">Carregando R2…</div>';try{const data=await api('/api/admin/files');state.files=data.items||[];root.innerHTML='';if(!state.files.length){root.innerHTML='<div class="empty-card">Nenhum arquivo no bucket.</div>';return;}state.files.forEach(f=>{const card=document.createElement('article');card.className='file-card';const n=document.createElement('strong');n.textContent=f.key;const s=document.createElement('small');s.textContent=`${bytes(f.size)} • ${formatDate(f.uploaded)}`;card.append(n,s);root.appendChild(card);});}catch(e){root.innerHTML=`<div class="empty-card">${esc(e.message)}</div>`;}};
+  $('#refresh-files')?.addEventListener('click',loadFiles);
 
-  $('#refresh-leads').addEventListener('click', loadLeads);
-  $('#lead-status-filter').addEventListener('change', loadLeads);
-  let searchTimer; $('#lead-search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadLeads, 350); });
+  const loadPortfolio = async () => {const root=$('#portfolio-admin-grid');root.innerHTML='<div class="empty-card">Carregando portfólio…</div>';try{const data=await api('/api/admin/portfolio');state.portfolio=data.items||[];renderPortfolio();}catch(e){root.innerHTML=`<div class="empty-card">${esc(e.message)}</div>`;}};
+  const renderPortfolio = () => {const root=$('#portfolio-admin-grid');root.innerHTML='';const filter=$('#portfolio-filter').value;const items=state.portfolio.filter(i=>!filter||i.category===filter);if(!items.length){root.innerHTML='<div class="empty-card">Nenhum projeto nesta categoria.</div>';return;}items.forEach(item=>{const card=document.createElement('article');card.className=`cms-card ${item.published?'':'inactive'}`;const media=document.createElement('div');media.className='cms-card__image';media.innerHTML=item.image_url?`<img src="${item.image_url}" alt="">`:'<span>SER COMTEC</span>';const body=document.createElement('div');body.className='cms-card__body';const cat=document.createElement('span');cat.textContent=item.category;const h=document.createElement('h3');h.textContent=item.title;const p=document.createElement('p');p.textContent=item.summary||'Sem resumo';const meta=document.createElement('div');meta.className='cms-card__meta';(item.technologies||[]).slice(0,5).forEach(v=>{const i=document.createElement('i');i.textContent=v;meta.appendChild(i);});const actions=document.createElement('div');actions.className='cms-card__actions';const edit=document.createElement('button');edit.textContent='Editar';edit.addEventListener('click',()=>openPortfolio(item));const del=document.createElement('button');del.textContent='Excluir';del.className='danger';del.addEventListener('click',()=>deletePortfolio(item));actions.append(edit,del);body.append(cat,h,p,meta,actions);card.append(media,body);root.appendChild(card);});};
+  const openPortfolio = (item=null) => {$('#portfolio-dialog-title').textContent=item?'Editar projeto':'Novo projeto';$('#portfolio-id').value=item?.id||'';$('#portfolio-title').value=item?.title||'';$('#portfolio-category').value=item?.category||'projeto';$('#portfolio-summary').value=item?.summary||'';$('#portfolio-description').value=item?.description||'';$('#portfolio-tech').value=(item?.technologies||[]).join(', ');$('#portfolio-client').value=item?.client_name||'';$('#portfolio-url').value=item?.project_url||'';$('#portfolio-order').value=item?.sort_order??100;$('#portfolio-image-url').value=item?.image_url||'';$('#portfolio-image-file').value='';$('#portfolio-featured').checked=Boolean(item?.featured);$('#portfolio-published').checked=item?Boolean(item.published):true;$('#portfolio-dialog').showModal();};
+  const savePortfolio = async () => {const button=$('#save-portfolio');button.disabled=true;try{let image=$('#portfolio-image-url').value;const file=$('#portfolio-image-file').files[0];if(file)image=await uploadImage(file,'portfolio',$('#portfolio-title').value);const id=$('#portfolio-id').value;const payload={id:id||undefined,title:$('#portfolio-title').value.trim(),category:$('#portfolio-category').value,summary:$('#portfolio-summary').value.trim(),description:$('#portfolio-description').value.trim(),technologies:$('#portfolio-tech').value.split(',').map(v=>v.trim()).filter(Boolean),client_name:$('#portfolio-client').value.trim(),project_url:$('#portfolio-url').value.trim(),sort_order:Number($('#portfolio-order').value||100),image_url:image,featured:$('#portfolio-featured').checked,published:$('#portfolio-published').checked,actor:state.user?.email};await api('/api/admin/portfolio',{method:id?'PUT':'POST',body:JSON.stringify(payload)});$('#portfolio-dialog').close();await Promise.all([loadPortfolio(),loadOverview()]);}catch(e){notify(e.message);}finally{button.disabled=false;}};
+  const deletePortfolio = async (item) => {if(!confirm(`Excluir “${item.title}” do portfólio?`))return;try{await api(`/api/admin/portfolio/${encodeURIComponent(item.id)}`,{method:'DELETE'});await Promise.all([loadPortfolio(),loadOverview()]);}catch(e){notify(e.message);}};
+  $('#new-portfolio')?.addEventListener('click',()=>openPortfolio());$('#portfolio-filter')?.addEventListener('change',renderPortfolio);$('#save-portfolio')?.addEventListener('click',savePortfolio);
 
-  const loadTickets = async () => {
-    const tbody = $('#tickets-table'); tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Carregando chamados…</td></tr>';
-    try {
-      const data = await api('/api/admin/tickets'); state.tickets = data.items || []; tbody.innerHTML = '';
-      if (!state.tickets.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum chamado aberto.</td></tr>'; return; }
-      state.tickets.forEach(t => {
-        const tr = document.createElement('tr');
-        [t.subject || t.requester_name || 'Chamado', t.product || '—', t.priority || 'normal', t.status || 'aberto', formatDate(t.updated_at || t.created_at)].forEach((v,i) => { const td = document.createElement('td'); if(i===0){const s=document.createElement('strong');s.textContent=v;td.appendChild(s)}else td.textContent=v; tr.appendChild(td); });
-        tbody.appendChild(tr);
-      });
-    } catch { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Chamados indisponíveis.</td></tr>'; }
-  };
-  $('#refresh-tickets').addEventListener('click', loadTickets);
+  const loadProducts = async () => {const root=$('#products-admin-grid');root.innerHTML='<div class="empty-card">Carregando produtos…</div>';try{const data=await api('/api/admin/products');state.products=data.items||[];renderProducts();}catch(e){root.innerHTML=`<div class="empty-card">${esc(e.message)}</div>`;}};
+  const renderProducts = () => {const root=$('#products-admin-grid');root.innerHTML='';if(!state.products.length){root.innerHTML='<div class="empty-card">Nenhum produto.</div>';return;}state.products.forEach(item=>{const card=document.createElement('article');card.className=`cms-card ${item.active?'':'inactive'}`;const media=document.createElement('div');media.className='cms-card__image';media.innerHTML=item.image_url?`<img src="${item.image_url}" alt="">`:(item.logo_url?`<img src="${item.logo_url}" alt="" style="object-fit:contain;padding:28px">`:'<span>PRODUTO</span>');const body=document.createElement('div');body.className='cms-card__body';const cat=document.createElement('span');cat.textContent=item.active?'ATIVO':'INATIVO';const h=document.createElement('h3');h.textContent=item.name;const p=document.createElement('p');p.textContent=item.tagline||item.description||'';const actions=document.createElement('div');actions.className='cms-card__actions';const edit=document.createElement('button');edit.textContent='Editar';edit.addEventListener('click',()=>openProduct(item));actions.appendChild(edit);body.append(cat,h,p,actions);card.append(media,body);root.appendChild(card);});};
+  const openProduct = (item=null) => {$('#product-dialog-title').textContent=item?'Editar produto':'Novo produto';$('#product-id').value=item?.id||'';$('#product-name').value=item?.name||'';$('#product-slug').value=item?.slug||'';$('#product-tagline').value=item?.tagline||'';$('#product-description').value=item?.description||'';$('#product-url').value=item?.site_url||'';$('#product-cta').value=item?.cta_label||'';$('#product-logo-url').value=item?.logo_url||'';$('#product-order').value=item?.sort_order??100;$('#product-image-url').value=item?.image_url||'';$('#product-image-file').value='';$('#product-active').checked=item?Boolean(item.active):true;$('#product-featured').checked=item?Boolean(item.featured):true;$('#product-dialog').showModal();};
+  const saveProduct = async () => {const button=$('#save-product');button.disabled=true;try{let image=$('#product-image-url').value;const file=$('#product-image-file').files[0];if(file)image=await uploadImage(file,'products',$('#product-name').value);const id=$('#product-id').value;const payload={id:id||undefined,name:$('#product-name').value.trim(),slug:$('#product-slug').value.trim(),tagline:$('#product-tagline').value.trim(),description:$('#product-description').value.trim(),site_url:$('#product-url').value.trim(),cta_label:$('#product-cta').value.trim(),logo_url:$('#product-logo-url').value.trim(),image_url:image,sort_order:Number($('#product-order').value||100),active:$('#product-active').checked,featured:$('#product-featured').checked,actor:state.user?.email};await api('/api/admin/products',{method:id?'PUT':'POST',body:JSON.stringify(payload)});$('#product-dialog').close();await loadProducts();}catch(e){notify(e.message);}finally{button.disabled=false;}};
+  $('#new-product')?.addEventListener('click',()=>openProduct());$('#save-product')?.addEventListener('click',saveProduct);
 
-  const loadFiles = async () => {
-    const root = $('#files-grid'); root.innerHTML = '<div class="empty-card">Carregando R2…</div>';
-    try {
-      const data = await api('/api/admin/files'); state.files = data.items || []; root.innerHTML = '';
-      if (!state.files.length) { root.innerHTML = '<div class="empty-card">Nenhum arquivo no bucket.</div>'; return; }
-      state.files.forEach(f => { const card=document.createElement('article');card.className='file-card';const n=document.createElement('strong');n.textContent=f.key;const s=document.createElement('small');s.textContent=`${bytes(f.size)} • ${formatDate(f.uploaded)}`;card.append(n,s);root.appendChild(card); });
-    } catch { root.innerHTML = '<div class="empty-card">R2 indisponível ou acesso não validado.</div>'; }
-  };
-  $('#refresh-files').addEventListener('click', loadFiles);
+  const loadSiteSettings = async () => {try{const data=await api('/api/admin/site-settings');const form=$('#site-settings-form'),hero=data.hero||{},contact=data.contact||{};['eyebrow','title','highlight','lead','body'].forEach(k=>{form.elements[k].value=hero[k]||'';});['whatsapp','phone','instagram','email','support_email'].forEach(k=>{form.elements[k].value=contact[k]||'';});}catch(e){notify(e.message);}};
+  $('#site-settings-form')?.addEventListener('submit',async(event)=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]');button.disabled=true;try{const hero=Object.fromEntries(['eyebrow','title','highlight','lead','body'].map(k=>[k,form.elements[k].value.trim()]));const contact=Object.fromEntries(['whatsapp','phone','instagram','email','support_email'].map(k=>[k,form.elements[k].value.trim()]));await api('/api/admin/site-settings',{method:'PUT',body:JSON.stringify({hero,contact,actor:state.user?.email})});notify('Conteúdo salvo. O site público já pode consumir estas informações.');}catch(e){notify(e.message);}finally{button.disabled=false;}});
 
-  const renderIntegrations = () => {
-    const h = state.overview?.health || {};
-    [['#int-db',h.db],['#int-r2',h.files],['#int-ai',h.openai],['#int-webhook',h.webhook]].forEach(([selector,ok]) => { const el=$(selector); if(!el)return; el.textContent=ok?'Ativo':'Pendente'; el.classList.toggle('ok',!!ok); });
-  };
+  const loadLegal = async () => {const root=$('#legal-editors');root.innerHTML='<div class="empty-card">Carregando documentos…</div>';try{const data=await api('/api/admin/legal');state.legal=data.items||[];renderLegal();}catch(e){root.innerHTML=`<div class="empty-card">${esc(e.message)}</div>`;}};
+  const renderLegal = () => {const root=$('#legal-editors');root.innerHTML='';state.legal.forEach(doc=>{const card=document.createElement('article');card.className='legal-editor';const label=document.createElement('span');label.textContent=doc.slug.toUpperCase();const h=document.createElement('h3');h.textContent=doc.title;const titleLabel=document.createElement('label');titleLabel.textContent='Título';const input=document.createElement('input');input.value=doc.title;titleLabel.appendChild(input);const contentLabel=document.createElement('label');contentLabel.textContent='Conteúdo';const textarea=document.createElement('textarea');textarea.value=doc.content||'';contentLabel.appendChild(textarea);const actions=document.createElement('div');actions.className='actions';const stateLabel=document.createElement('label');stateLabel.className='check-label';const check=document.createElement('input');check.type='checkbox';check.checked=Boolean(doc.published);stateLabel.append(check,document.createTextNode(' Publicado'));const save=document.createElement('button');save.className='primary-button';save.textContent='Salvar documento';save.addEventListener('click',async()=>{save.disabled=true;try{await api('/api/admin/legal',{method:'PUT',body:JSON.stringify({slug:doc.slug,title:input.value.trim(),content:textarea.value,published:check.checked,actor:state.user?.email})});notify('Documento atualizado.');await loadLegal();}catch(e){notify(e.message);}finally{save.disabled=false;}});actions.append(stateLabel,save);card.append(label,h,titleLabel,contentLabel,actions);root.appendChild(card);});};
+  $('#refresh-legal')?.addEventListener('click',loadLegal);
 
-  (async () => {
-    const session = await loadSession();
-    if (session) await Promise.all([loadOverview(), loadLeads()]);
-  })();
+  const loadUsers = async () => {const tbody=$('#users-table');tbody.innerHTML='<tr><td colspan="5" class="empty-state">Carregando…</td></tr>';try{const data=await api('/api/admin/users');state.users=data.items||[];tbody.innerHTML='';state.users.forEach(u=>{const tr=document.createElement('tr');const who=document.createElement('td');const name=document.createElement('strong');name.textContent=u.name;const email=document.createElement('small');email.textContent=u.email;who.append(name,email);const role=document.createElement('td');role.innerHTML=`<span class="role-chip">${esc(u.role)}</span>`;const status=document.createElement('td');status.innerHTML=`<span class="status-dot-text ${u.active?'active':''}">${u.active?'Ativo':'Inativo'}</span>`;const last=document.createElement('td');last.textContent=formatDate(u.last_login_at);const action=document.createElement('td');const button=document.createElement('button');button.className='row-action';button.textContent=u.active?'Desativar':'Ativar';button.addEventListener('click',()=>toggleUser(u));action.appendChild(button);tr.append(who,role,status,last,action);tbody.appendChild(tr);});}catch(e){tbody.innerHTML=`<tr><td colspan="5" class="empty-state">${esc(e.message)}</td></tr>`;}};
+  const toggleUser = async (u) => {try{await api(`/api/admin/users/${encodeURIComponent(u.id)}`,{method:'PATCH',body:JSON.stringify({active:!u.active})});await loadUsers();}catch(e){notify(e.message);}};
+  $('#new-user')?.addEventListener('click',()=>{$('#new-user-name').value='';$('#new-user-email').value='';$('#new-user-password').value='';$('#new-user-role').value='editor';$('#user-dialog').showModal();});
+  $('#save-user')?.addEventListener('click',async()=>{const button=$('#save-user');button.disabled=true;try{await api('/api/admin/users',{method:'POST',body:JSON.stringify({name:$('#new-user-name').value.trim(),email:$('#new-user-email').value.trim(),role:$('#new-user-role').value,password:$('#new-user-password').value})});$('#user-dialog').close();await loadUsers();notify('Usuário criado.');}catch(e){notify(e.message);}finally{button.disabled=false;}});
+
+  const renderIntegrations = (h=state.overview?.health||{}) => { [['#int-db',h.db],['#int-r2',h.files],['#int-ai',h.openai],['#int-webhook',h.webhook],['#int-resend',h.resend]].forEach(([selector,ok])=>{const el=$(selector);if(!el)return;el.textContent=ok?'Ativo':'Pendente';el.classList.toggle('ok',!!ok);}); };
+  const loadConnectors = async () => {try{const data=await api('/api/admin/connectors');state.connectors=data.items||[];const root=$('#connectors-grid');root.innerHTML='';state.connectors.forEach(c=>{const card=document.createElement('article');card.className='connector-card';const strong=document.createElement('strong');strong.textContent=c.name;const small=document.createElement('small');small.textContent=(c.capabilities||[]).join(' • ')||'Conector preparado';const status=document.createElement('span');status.className=c.status==='ativo'?'ativo':'';status.textContent=c.status||'planejado';card.append(strong,small,status);root.appendChild(card);});renderIntegrations();}catch(e){notify(e.message);}};
+
+  $('#logout-button')?.addEventListener('click',async()=>{try{await api('/api/auth/logout',{method:'POST',body:'{}'});}finally{location.replace('/');}});
+
+  (async()=>{const session=await loadSession();if(!session)return;await Promise.all([loadOverview(),loadLeads()]);})();
 })();
