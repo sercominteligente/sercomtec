@@ -24,6 +24,6 @@
   "vars": {
     "OPENAI_MODEL": "gpt-5.6-luna",
     "CF_ACCESS_TEAM_DOMAIN": "bitter-cell-31bf.cloudflareaccess.com",
-    "CF_ACCESS_AUD": "83863914-4392-42cc-9877-2bd12b01ac0b"
+    "CF_ACCESS_AUD": "0660cae7a9297fe3752fec9914851832ac0181469ea2919ce14e041292049e2a"
   }
 }
