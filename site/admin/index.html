@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16314a">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>SER comtec | Administração</title>
+  <link rel="icon" type="image/png" href="/brand/icon-192.png">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="admin-brand" href="/" aria-label="SER comtec Administração">
+        <img src="/brand/icon-192.png" alt="">
+        <span><strong>SER</strong><em>comtec</em><small>ADMIN</small></span>
+      </a>
+      <nav class="admin-nav" aria-label="Administração">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Visão geral</button>
+        <button class="nav-item" data-view="leads"><span>◎</span> Leads <b id="nav-leads-count">0</b></button>
+        <button class="nav-item" data-view="support"><span>◌</span> Suporte</button>
+        <button class="nav-item" data-view="files"><span>□</span> Arquivos</button>
+        <div class="nav-divider">OPERAÇÃO</div>
+        <button class="nav-item" data-view="ai"><span>✦</span> IA & automações</button>
+        <button class="nav-item" data-view="products"><span>◇</span> Produtos</button>
+        <button class="nav-item" data-view="site"><span>▤</span> Conteúdo do site</button>
+        <button class="nav-item" data-view="integrations"><span>⌁</span> Integrações</button>
+        <div class="nav-divider">SISTEMA</div>
+        <button class="nav-item" data-view="settings"><span>⚙</span> Configurações</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="status-dot"></span>
+        <div><strong>SER comtec</strong><small>Ambiente de produção</small></div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Abrir menu">☰</button>
+        <div>
+          <p class="eyebrow">CENTRAL DE OPERAÇÕES</p>
+          <h1 id="page-title">Visão geral</h1>
+        </div>
+        <div class="topbar-actions">
+          <a href="https://www.sercomtec.com.br" target="_blank" rel="noreferrer" class="quiet-button">Ver site ↗</a>
+          <div class="admin-user"><span id="user-initial">S</span><div><strong id="user-name">Administrador</strong><small id="user-email">Cloudflare Access</small></div></div>
+        </div>
+      </header>
+
+      <div class="access-banner" id="access-banner" hidden>
+        <strong>Área administrativa protegida</strong>
+        <span id="access-message">Validando sua sessão no Cloudflare Access…</span>
+      </div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="hero-panel">
+          <div><span class="pill">SER COMTEC • OPERAÇÃO</span><h2>Bom dia. Aqui está o pulso da operação.</h2><p>Leads, suporte, infraestrutura e integrações em uma visão limpa e objetiva.</p></div>
+          <div class="health-ring"><strong id="health-score">—</strong><span>serviços ativos</span></div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><span>Leads novos</span><strong id="stat-new-leads">—</strong><small>aguardando contato</small></article>
+          <article class="stat-card"><span>Leads totais</span><strong id="stat-total-leads">—</strong><small>captados pelo site</small></article>
+          <article class="stat-card"><span>Suporte aberto</span><strong id="stat-open-tickets">—</strong><small>tickets em andamento</small></article>
+          <article class="stat-card"><span>Arquivos R2</span><strong id="stat-files">—</strong><small>itens visíveis</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel wide-panel"><div class="panel-head"><div><span>COMERCIAL</span><h3>Leads recentes</h3></div><button class="text-button" data-open-view="leads">Ver todos →</button></div><div id="recent-leads" class="compact-list skeleton-block"></div></article>
+          <article class="panel"><div class="panel-head"><div><span>INFRAESTRUTURA</span><h3>Saúde do ecossistema</h3></div></div><div id="infra-health" class="health-list skeleton-block"></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-leads">
+        <div class="section-toolbar"><div><p>Gerencie os contatos recebidos pelo site e acompanhe o avanço comercial.</p></div><div class="toolbar-controls"><input id="lead-search" type="search" placeholder="Buscar nome, empresa ou contato"><select id="lead-status-filter"><option value="">Todos os status</option><option value="novo">Novo</option><option value="contato">Em contato</option><option value="qualificado">Qualificado</option><option value="proposta">Proposta</option><option value="ganho">Ganho</option><option value="perdido">Perdido</option></select><button id="refresh-leads" class="primary-button">Atualizar</button></div></div>
+        <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Lead</th><th>Interesse</th><th>Contato</th><th>Status</th><th>Recebido</th><th></th></tr></thead><tbody id="leads-table"><tr><td colspan="6" class="empty-state">Carregando leads…</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-support">
+        <div class="section-toolbar"><p>Centralize solicitações técnicas e acompanhe prioridades.</p><button id="refresh-tickets" class="primary-button">Atualizar</button></div>
+        <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Chamado</th><th>Produto</th><th>Prioridade</th><th>Status</th><th>Atualização</th></tr></thead><tbody id="tickets-table"><tr><td colspan="5" class="empty-state">Nenhum dado carregado.</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-files">
+        <div class="section-toolbar"><p>Arquivos armazenados no bucket <strong>sercomtec-files</strong>.</p><button id="refresh-files" class="primary-button">Atualizar</button></div>
+        <div id="files-grid" class="files-grid"><div class="empty-card">Carregando R2…</div></div>
+      </section>
+
+      <section class="view" id="view-ai"><div class="feature-grid"><article class="feature-card featured"><span>IA PÚBLICA</span><h3>SER IA Assistente</h3><p>Atendimento, vendas e suporte técnico do site institucional.</p><div class="feature-status"><i></i><strong id="ai-model">Modelo configurado</strong></div></article><article class="feature-card"><span>AUTOMAÇÕES</span><h3>n8n / Webhooks</h3><p>Fluxos de leads e integrações comerciais.</p><div class="feature-status"><i></i><strong id="webhook-status">Verificando</strong></div></article><article class="feature-card"><span>PRÓXIMA FASE</span><h3>Base de conhecimento</h3><p>Documentação técnica e comercial por produto, com governança de conteúdo.</p><button disabled>Em preparação</button></article></div></section>
+
+      <section class="view" id="view-products"><div class="product-admin-grid"><article><b>SERhub</b><span>Gestão inteligente para pequenos negócios</span><small>Produto ativo no site</small></article><article><b>NegocIAJá</b><span>Atendimento conversacional e vendas</span><small>Produto ativo no site</small></article><article><b>SER IA MASTER</b><span>IA integrada à operação</span><small>Produto ativo no site</small></article><article><b>Automação sob medida</b><span>Soluções personalizadas</span><small>Serviço ativo no site</small></article></div></section>
+
+      <section class="view" id="view-site"><div class="panel editorial-panel"><span>CONTEÚDO INSTITUCIONAL</span><h3>O layout público continua protegido pelo Master Visual aprovado.</h3><p>A edição administrativa de textos, contatos e blocos será liberada em uma próxima etapa com versionamento e histórico, evitando alterações acidentais no design.</p><div class="readonly-fields"><label>Site<input readonly value="www.sercomtec.com.br"></label><label>Instagram<input readonly value="@ser.com.tec"></label><label>WhatsApp<input readonly value="(85) 99166-5259"></label><label>Atendimento<input readonly value="atendimento@sercomtec.com.br"></label></div></div></section>
+
+      <section class="view" id="view-integrations"><div id="integration-grid" class="integration-grid"><article><span class="integration-icon">D1</span><div><strong>Cloudflare D1</strong><small>sercomtec-db</small></div><b id="int-db">—</b></article><article><span class="integration-icon">R2</span><div><strong>Cloudflare R2</strong><small>sercomtec-files</small></div><b id="int-r2">—</b></article><article><span class="integration-icon">AI</span><div><strong>OpenAI</strong><small>SER IA Assistente</small></div><b id="int-ai">—</b></article><article><span class="integration-icon">n8n</span><div><strong>Leads Webhook</strong><small>Automação comercial</small></div><b id="int-webhook">—</b></article></div></section>
+
+      <section class="view" id="view-settings"><div class="panel settings-panel"><span>SEGURANÇA</span><h3>Administração protegida por Cloudflare Access</h3><p>Esta área foi projetada para validar o JWT do Access no Worker antes de liberar qualquer API administrativa.</p><div class="settings-checklist"><div><i></i><span>Domínio administrativo</span><strong>app.sercomtec.com.br</strong></div><div><i></i><span>Banco de dados</span><strong>sercomtec-db</strong></div><div><i></i><span>Arquivos</span><strong>sercomtec-files</strong></div></div></div></section>
+    </main>
+  </div>
+
+  <dialog id="lead-dialog"><form method="dialog" class="lead-dialog-card"><button class="dialog-close" value="cancel">×</button><span class="dialog-kicker">LEAD</span><h2 id="dialog-name">Lead</h2><p id="dialog-company"></p><div class="dialog-details" id="dialog-details"></div><label>Status<select id="dialog-status"><option value="novo">Novo</option><option value="contato">Em contato</option><option value="qualificado">Qualificado</option><option value="proposta">Proposta</option><option value="ganho">Ganho</option><option value="perdido">Perdido</option></select></label><label>Observações<textarea id="dialog-notes" rows="5" placeholder="Registre contexto, próximos passos ou observações comerciais"></textarea></label><div class="dialog-actions"><button value="cancel" class="quiet-button">Cancelar</button><button type="button" id="save-lead" class="primary-button">Salvar alterações</button></div></form></dialog>
+
+  <script src="/admin/admin.js" defer></script>
+</body>
+</html>
