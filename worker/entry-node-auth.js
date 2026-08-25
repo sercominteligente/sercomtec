@@ -1,10 +1,15 @@
 import app from './index.js';
-import { pbkdf2Sync, timingSafeEqual } from 'node:crypto';
+import { pbkdf2Sync, scryptSync, timingSafeEqual } from 'node:crypto';
 
 const ADMIN_HOST = 'app.sercomtec.com.br';
 const SESSION_COOKIE = 'ser_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
-const HASH_ITERATIONS = 120000;
+const LEGACY_PBKDF2_MAX = 100000;
+const SCRYPT_N = 16384;
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const SCRYPT_MAXMEM = 64 * 1024 * 1024;
+const USER_ROLES = new Set(['super_admin', 'admin', 'editor', 'suporte', 'viewer']);
 
 const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
@@ -93,15 +98,9 @@ async function authenticateAccess(request, env) {
       },
     };
   } catch (error) {
-    console.error('node-auth access validation failed', error);
+    console.error('auth access validation failed', error);
     return { ok: false, status: 401, error: 'Não foi possível validar o Cloudflare Access.' };
   }
-}
-
-function derivePasswordHash(password, saltHex, iterations = HASH_ITERATIONS) {
-  const salt = hexToBytes(saltHex);
-  const derived = pbkdf2Sync(String(password), salt, Number(iterations), 32, 'sha256');
-  return bytesToHex(derived);
 }
 
 function safeHashEqual(leftHex, rightHex) {
@@ -113,6 +112,40 @@ function safeHashEqual(leftHex, rightHex) {
   } catch {
     return false;
   }
+}
+
+function hashPasswordScrypt(password, saltHex) {
+  const derived = scryptSync(String(password), hexToBytes(saltHex), 32, {
+    N: SCRYPT_N,
+    r: SCRYPT_R,
+    p: SCRYPT_P,
+    maxmem: SCRYPT_MAXMEM,
+  });
+  return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${bytesToHex(derived)}`;
+}
+
+function verifyPassword(password, row) {
+  const stored = String(row?.password_hash || '');
+  const salt = String(row?.password_salt || '');
+  if (!stored || !salt) return false;
+
+  if (stored.startsWith('scrypt$')) {
+    const [, nRaw, rRaw, pRaw, expectedHex] = stored.split('$');
+    const N = Number(nRaw), r = Number(rRaw), p = Number(pRaw);
+    if (!N || !r || !p || !expectedHex) return false;
+    const candidate = scryptSync(String(password), hexToBytes(salt), 32, {
+      N,
+      r,
+      p,
+      maxmem: SCRYPT_MAXMEM,
+    });
+    return safeHashEqual(bytesToHex(candidate), expectedHex);
+  }
+
+  const iterations = Number(row.password_iterations || LEGACY_PBKDF2_MAX);
+  if (!Number.isFinite(iterations) || iterations < 1 || iterations > LEGACY_PBKDF2_MAX) return false;
+  const candidate = pbkdf2Sync(String(password), hexToBytes(salt), iterations, 32, 'sha256');
+  return safeHashEqual(bytesToHex(candidate), stored);
 }
 
 function sessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
@@ -129,7 +162,7 @@ async function ensureAuthSchema(env) {
     if (!users || !sessions) return { ok: false, error: 'Migration de autenticação ainda não foi aplicada ao D1.' };
     return { ok: true };
   } catch (error) {
-    console.error('node-auth schema check failed', error);
+    console.error('auth schema check failed', error);
     return { ok: false, error: 'Não foi possível verificar o schema de autenticação no D1.' };
   }
 }
@@ -157,6 +190,32 @@ async function createSession(request, env, userId) {
   return rawToken;
 }
 
+async function getLocalSession(request, env) {
+  if (!env.DB) return null;
+  const token = parseCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+  const tokenHash = await sha256Hex(token);
+  const row = await env.DB.prepare(`
+    SELECT s.id AS session_id,s.expires_at,u.id,u.name,u.email,u.role,u.active
+    FROM admin_sessions s
+    JOIN admin_users u ON u.id=s.user_id
+    WHERE s.token_hash=? LIMIT 1
+  `).bind(tokenHash).first();
+  if (!row || !row.active || new Date(row.expires_at).getTime() <= Date.now()) {
+    if (row?.session_id) await env.DB.prepare('DELETE FROM admin_sessions WHERE id=?').bind(row.session_id).run();
+    return null;
+  }
+  env.DB.prepare('UPDATE admin_sessions SET last_seen_at=? WHERE id=?').bind(nowIso(), row.session_id).run().catch(() => {});
+  return { sessionId: row.session_id, id: row.id, name: row.name, email: row.email, role: row.role };
+}
+
+async function requireUserManager(request, env) {
+  const user = await getLocalSession(request, env);
+  if (!user) return { ok: false, status: 401, error: 'Faça login na área administrativa.' };
+  if (!['super_admin', 'admin'].includes(user.role)) return { ok: false, status: 403, error: 'Sem permissão para gerenciar usuários.' };
+  return { ok: true, user };
+}
+
 async function bootstrapAdmin(request, env) {
   const schema = await ensureAuthSchema(env);
   if (!schema.ok) return json({ error: schema.error, stage: 'schema' }, 503);
@@ -180,10 +239,10 @@ async function bootstrapAdmin(request, env) {
   const salt = randomHex(16);
   let hash;
   try {
-    hash = derivePasswordHash(password, salt, HASH_ITERATIONS);
+    hash = hashPasswordScrypt(password, salt);
   } catch (error) {
-    console.error('node-auth password derivation failed', error);
-    return json({ error: 'Falha ao derivar a senha no runtime do Worker.', stage: 'password-node' }, 500);
+    console.error('scrypt bootstrap derivation failed', error);
+    return json({ error: 'Não foi possível derivar a senha com scrypt no Worker.', stage: 'password-scrypt' }, 500);
   }
 
   const userId = crypto.randomUUID();
@@ -195,7 +254,7 @@ async function bootstrapAdmin(request, env) {
       INSERT INTO admin_users
       (id,name,email,role,password_hash,password_salt,password_iterations,active,failed_attempts,created_at,created_by)
       VALUES (?,?,?,'super_admin',?,?,?,1,0,?,?)
-    `).bind(userId, name, email, hash, salt, HASH_ITERATIONS, createdAt, createdBy).run();
+    `).bind(userId, name, email, hash, salt, SCRYPT_N, createdAt, createdBy).run();
 
     let sessionToken;
     try {
@@ -211,7 +270,7 @@ async function bootstrapAdmin(request, env) {
       { 'set-cookie': sessionCookie(sessionToken) },
     );
   } catch (error) {
-    console.error('node-auth bootstrap write failed', error);
+    console.error('bootstrap D1 write failed', error);
     return json({ error: 'Não foi possível concluir a criação do administrador no D1.', stage: 'database-write' }, 500);
   }
 }
@@ -219,6 +278,9 @@ async function bootstrapAdmin(request, env) {
 async function loginAdmin(request, env) {
   const schema = await ensureAuthSchema(env);
   if (!schema.ok) return json({ error: schema.error }, 503);
+
+  const access = await authenticateAccess(request, env);
+  if (!access.ok) return json({ error: access.error }, access.status);
 
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Dados inválidos.' }, 400); }
@@ -232,15 +294,15 @@ async function loginAdmin(request, env) {
     return json({ error: 'Conta temporariamente bloqueada. Aguarde alguns minutos.' }, 429);
   }
 
-  let candidate;
+  let valid = false;
   try {
-    candidate = derivePasswordHash(password, row.password_salt, Number(row.password_iterations || HASH_ITERATIONS));
+    valid = verifyPassword(password, row);
   } catch (error) {
-    console.error('node-auth login derivation failed', error);
+    console.error('password verification failed', error);
     return json({ error: 'Não foi possível validar a senha neste momento.' }, 500);
   }
 
-  if (!safeHashEqual(candidate, row.password_hash)) {
+  if (!valid) {
     const failed = Number(row.failed_attempts || 0) + 1;
     const lockedUntil = failed >= 6 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
     await env.DB.prepare('UPDATE admin_users SET failed_attempts=?, locked_until=?, updated_at=? WHERE id=?')
@@ -259,12 +321,90 @@ async function loginAdmin(request, env) {
   );
 }
 
+async function createManagedUser(request, env) {
+  const auth = await requireUserManager(request, env);
+  if (!auth.ok) return json({ error: auth.error }, auth.status);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Dados inválidos.' }, 400); }
+
+  const name = text(body.name, 100);
+  const email = normalizeEmail(body.email);
+  const role = USER_ROLES.has(body.role) ? body.role : 'editor';
+  const password = String(body.password || '');
+  if (!name || !email.includes('@') || !validPassword(password)) {
+    return json({ error: 'Informe nome, e-mail e senha com pelo menos 10 caracteres, letras e números.' }, 400);
+  }
+  if (role === 'super_admin' && auth.user.role !== 'super_admin') {
+    return json({ error: 'Somente um super_admin pode criar outro super_admin.' }, 403);
+  }
+
+  const exists = await env.DB.prepare('SELECT id FROM admin_users WHERE email=? LIMIT 1').bind(email).first();
+  if (exists) return json({ error: 'Já existe um usuário com este e-mail.' }, 409);
+
+  const id = crypto.randomUUID();
+  const salt = randomHex(16);
+  const hash = hashPasswordScrypt(password, salt);
+  const createdAt = nowIso();
+  await env.DB.prepare(`
+    INSERT INTO admin_users
+    (id,name,email,role,password_hash,password_salt,password_iterations,active,failed_attempts,created_at,created_by)
+    VALUES (?,?,?,?,?,?,?,1,0,?,?)
+  `).bind(id, name, email, role, hash, salt, SCRYPT_N, createdAt, auth.user.email).run();
+
+  return json({ ok: true, item: { id, name, email, role, active: true } });
+}
+
+async function patchManagedUser(request, env, id) {
+  const auth = await requireUserManager(request, env);
+  if (!auth.ok) return json({ error: auth.error }, auth.status);
+  const target = await env.DB.prepare('SELECT * FROM admin_users WHERE id=? LIMIT 1').bind(id).first();
+  if (!target) return json({ error: 'Usuário não encontrado.' }, 404);
+  if (target.role === 'super_admin' && auth.user.role !== 'super_admin') {
+    return json({ error: 'Um admin comum não pode alterar um super_admin.' }, 403);
+  }
+
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Dados inválidos.' }, 400); }
+
+  const name = text(body.name ?? target.name, 100);
+  const role = USER_ROLES.has(body.role) ? body.role : target.role;
+  const active = body.active === undefined ? Number(target.active) : (body.active ? 1 : 0);
+  if (role === 'super_admin' && auth.user.role !== 'super_admin') {
+    return json({ error: 'Somente um super_admin pode atribuir esse perfil.' }, 403);
+  }
+
+  if (target.role === 'super_admin' && (!active || role !== 'super_admin')) {
+    const count = await env.DB.prepare("SELECT COUNT(*) AS total FROM admin_users WHERE role='super_admin' AND active=1").first();
+    if (Number(count?.total || 0) <= 1) return json({ error: 'O último super_admin ativo não pode ser removido ou rebaixado.' }, 409);
+  }
+
+  const updatedAt = nowIso();
+  await env.DB.prepare('UPDATE admin_users SET name=?,role=?,active=?,updated_at=? WHERE id=?')
+    .bind(name, role, active, updatedAt, id).run();
+
+  if (body.password) {
+    const password = String(body.password);
+    if (!validPassword(password)) return json({ error: 'A nova senha precisa ter pelo menos 10 caracteres, letras e números.' }, 400);
+    const salt = randomHex(16);
+    const hash = hashPasswordScrypt(password, salt);
+    await env.DB.prepare('UPDATE admin_users SET password_hash=?,password_salt=?,password_iterations=?,updated_at=? WHERE id=?')
+      .bind(hash, salt, SCRYPT_N, updatedAt, id).run();
+    await env.DB.prepare('DELETE FROM admin_sessions WHERE user_id=? AND id<>?')
+      .bind(id, auth.user.id === id ? auth.user.sessionId : '').run();
+  }
+
+  return json({ ok: true });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.hostname === ADMIN_HOST && request.method === 'POST') {
-      if (url.pathname === '/api/auth/bootstrap') return bootstrapAdmin(request, env);
-      if (url.pathname === '/api/auth/login') return loginAdmin(request, env);
+    if (url.hostname === ADMIN_HOST) {
+      if (request.method === 'POST' && url.pathname === '/api/auth/bootstrap') return bootstrapAdmin(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/auth/login') return loginAdmin(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/admin/users') return createManagedUser(request, env);
+      const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (userMatch && request.method === 'PATCH') return patchManagedUser(request, env, decodeURIComponent(userMatch[1]));
     }
     return app.fetch(request, env, ctx);
   },
