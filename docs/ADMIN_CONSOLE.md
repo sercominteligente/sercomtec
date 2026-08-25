@@ -1,41 +1,88 @@
-# SER comtec | Área administrativa
+# SER comtec | Central de Operações
 
-Domínio administrativo: `https://app.sercomtec.com.br`
+Domínio: `https://app.sercomtec.com.br`
+
+## Objetivo
+
+A área administrativa evolui de um painel do site para uma Central de Operações: CMS, CRM, suporte, portfólio, produtos, usuários, arquivos e integrações. A arquitetura mantém espaço para que SERhub, NegocIAJá, SER IA MASTER e projetos futuros sejam conectados gradualmente por APIs/eventos.
 
 ## Segurança
 
-As APIs em `/api/admin/*` validam o JWT emitido pelo Cloudflare Access. A interface pode carregar sem dados, mas nenhum dado administrativo é liberado sem validação do token.
+A proteção usa duas camadas:
 
-Configure no Worker:
+1. **Cloudflare Access** protege o hostname externo `app.sercomtec.com.br`.
+2. **Autenticação interna SER comtec** usa usuários individuais, PBKDF2-SHA256 com salt por usuário e sessões HttpOnly/Secure/SameSite=Strict.
 
-- `CF_ACCESS_TEAM_DOMAIN`: domínio da equipe do Cloudflare Access, por exemplo `sua-equipe.cloudflareaccess.com`.
-- `CF_ACCESS_AUD`: Application Audience (AUD) da aplicação Access criada para `app.sercomtec.com.br`.
+O primeiro usuário `super_admin` é criado pelo próprio login personalizado. O bootstrap só é aceito quando a identidade Cloudflare Access é validada e ainda não existe usuário local.
 
-A aplicação do Cloudflare Access deve proteger o hostname `app.sercomtec.com.br` e permitir apenas os e-mails/identidades administrativas autorizadas.
+Variáveis do Worker:
 
-## Módulos V1
+- `CF_ACCESS_TEAM_DOMAIN`
+- `CF_ACCESS_AUD`
+- `RESEND_API_KEY` para notificações de e-mail
+- `RESEND_FROM` opcional, padrão `SER comtec <atendimento@sercomtec.com.br>`
+- `RESEND_SUPPORT_FROM` opcional, padrão `SER comtec Suporte <suporte@sercomtec.com.br>`
 
-- Visão geral: indicadores de leads, suporte, R2 e integrações.
-- Leads: consulta, filtro, busca, alteração de status e observações.
-- Suporte: listagem de tickets.
-- Arquivos: listagem do bucket `sercomtec-files`.
-- IA & automações: status do SER IA Assistente e webhook de leads.
-- Produtos: visão dos produtos publicados.
-- Conteúdo do site: dados institucionais em modo protegido/read-only nesta fase.
-- Integrações: D1, R2, OpenAI e webhook/n8n.
-- Configurações: visão da arquitetura e segurança.
+## Módulos
 
-## D1
+### Visão geral
+Indicadores de leads, suporte, portfólio e saúde da infraestrutura.
 
-A migration `0002_admin_console.sql` cria:
+### Leads
+Dados recebidos do formulário do site, busca, status, responsável, observações e histórico. O lead continua gravado no D1, pode seguir para n8n e também gera notificação por Resend para `atendimento@sercomtec.com.br`.
 
-- `lead_activity`
-- `support_tickets`
-- `admin_settings`
+### Portfólio
+CRUD de projetos com categorias `projeto`, `site`, `sistema`, `automacao`, `ia`, `design` e `outro`. Suporta imagem no R2, tecnologias, cliente, link, destaque, publicação e ordenação. A página pública é `/portfolio.html`.
 
-O comando de deploy atual aplica as migrations remotas antes de executar `wrangler deploy`.
+### Produtos
+CRUD de nome, slug, tagline, descrição, logo, imagem, URL, CTA, estado e ordenação. O site público consulta `/api/public/products`.
 
-## Endpoints administrativos
+### Conteúdo do site
+Textos do Hero e informações de contato são armazenados em `admin_settings` e publicados por `/api/public/site-config`, preservando o layout aprovado.
+
+### Políticas & termos
+`privacidade` e `termos` ficam no D1 e são editáveis pelo painel. As páginas públicas carregam `/api/public/legal/:slug`.
+
+### Suporte
+Tickets ficam em `support_tickets`. O endpoint público `POST /api/support` pode criar tickets e notificar `suporte@sercomtec.com.br` via Resend.
+
+### Arquivos
+Uploads de imagens do CMS são gravados em `sercomtec-files` e servidos por `/media/*`.
+
+### Usuários
+Perfis disponíveis: `super_admin`, `admin`, `editor`, `suporte` e `viewer`.
+
+### Integrações
+A tabela `project_connectors` registra slots para SERhub, NegocIAJá, SER IA MASTER e futuros produtos. A ideia é conectar dados progressivamente, sem tornar o painel dependente de todos os sistemas ao mesmo tempo.
+
+## Migrations
+
+- `0001_leads.sql`: leads do site
+- `0002_admin_console.sql`: histórico, suporte e settings
+- `0003_cms_auth_portfolio.sql`: usuários, sessões, portfólio, produtos, documentos legais e conectores
+- `0004_seed_legal_content.sql`: conteúdo institucional inicial das páginas legais
+
+O deploy aplica migrations remotas antes de `wrangler deploy`.
+
+## Endpoints públicos
+
+- `POST /api/contact`
+- `POST /api/support`
+- `POST /api/chat`
+- `GET /api/public/site-config`
+- `GET /api/public/products`
+- `GET /api/public/portfolio`
+- `GET /api/public/legal/:slug`
+- `GET /media/*`
+
+## Autenticação local
+
+- `GET /api/auth/status`
+- `POST /api/auth/bootstrap`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+
+## Endpoints administrativos principais
 
 - `GET /api/admin/session`
 - `GET /api/admin/overview`
@@ -43,5 +90,12 @@ O comando de deploy atual aplica as migrations remotas antes de executar `wrangl
 - `PATCH /api/admin/leads/:id`
 - `GET /api/admin/tickets`
 - `GET /api/admin/files`
-
-Todos exigem Cloudflare Access válido e só respondem no hostname `app.sercomtec.com.br`.
+- `GET|POST|PUT /api/admin/portfolio`
+- `DELETE /api/admin/portfolio/:id`
+- `GET|POST|PUT /api/admin/products`
+- `GET|PUT /api/admin/site-settings`
+- `GET|PUT /api/admin/legal`
+- `GET|POST /api/admin/users`
+- `PATCH /api/admin/users/:id`
+- `GET|PUT /api/admin/connectors`
+- `POST /api/admin/upload`
