@@ -296,13 +296,12 @@ async function handleAdminApi(request, env) {
 
 async function serveAdminAsset(request, env) {
   const url = new URL(request.url);
-  if (url.pathname === '/' || url.pathname === '') {
-    const assetUrl = new URL(request.url); assetUrl.pathname = '/admin/index.html';
-    return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+  if (url.pathname.startsWith('/admin/') || url.pathname.startsWith('/brand/') || url.pathname === '/icons.svg') {
+    return env.ASSETS.fetch(request);
   }
-  if (url.pathname.startsWith('/admin/')) return env.ASSETS.fetch(request);
-  const assetUrl = new URL(request.url); assetUrl.pathname = '/admin/index.html';
-  return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+  const assetUrl = new URL(request.url);
+  assetUrl.pathname = '/admin/index.html';
+  return env.ASSETS.fetch(new Request(assetUrl.toString(), { headers: request.headers }));
 }
 
 export default {
