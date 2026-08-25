@@ -24,6 +24,8 @@
     feedback.classList.toggle('success', success);
   };
 
+  const openAdmin = () => location.replace('/admin/');
+
   const showBootstrap = (status) => {
     loginForm.hidden = true;
     bootstrapForm.hidden = false;
@@ -38,7 +40,7 @@
     try {
       const status = await api('/api/auth/status');
       if (status.authenticated) {
-        location.replace('/');
+        openAdmin();
         return;
       }
       if (status.bootstrapRequired) showBootstrap(status);
@@ -58,7 +60,7 @@
         body: JSON.stringify({ email: $('#login-email').value.trim(), password: $('#login-password').value }),
       });
       setFeedback('Acesso validado. Abrindo painel…', true);
-      location.replace('/');
+      openAdmin();
     } catch (error) {
       setFeedback(error.message || 'Não foi possível entrar.');
     } finally {
@@ -83,7 +85,7 @@
         body: JSON.stringify({ name: $('#setup-name').value.trim(), email: $('#setup-email').value.trim(), password }),
       });
       setFeedback('Administrador criado. Abrindo Central de Operações…', true);
-      location.replace('/');
+      openAdmin();
     } catch (error) {
       setFeedback(error.message || 'Não foi possível criar o administrador.');
     } finally {
