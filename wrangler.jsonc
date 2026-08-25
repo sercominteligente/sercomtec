@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "sercomtec",
-  "main": "./worker/entry-node-auth.js",
+  "main": "./worker/entry-admin-router.js",
   "compatibility_date": "2026-08-24",
   "assets": {
     "directory": "./site",
