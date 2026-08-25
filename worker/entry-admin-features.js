@@ -8,6 +8,7 @@ const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const SCRYPT_MAXMEM = 64 * 1024 * 1024;
 const LEGACY_PBKDF2_MAX = 100000;
+const ADMIN_UI_VERSION = '2026-08-25.3';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -15,6 +16,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
+    'x-sercomtec-admin-version': ADMIN_UI_VERSION,
   },
 });
 const text = (value, max = 4000) => String(value ?? '').trim().slice(0, max);
@@ -155,25 +157,63 @@ async function deleteLead(request, env, id) {
   return json({ ok: true, deleted: { id: lead.id, nome: lead.nome, email: lead.email } });
 }
 
+function assetRequest(request, pathname) {
+  const target = new URL(request.url);
+  target.pathname = pathname;
+  target.search = '';
+  return new Request(target.toString(), request);
+}
+
+async function withNoStore(response, contentType = null) {
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.set('cache-control', 'no-store, no-cache, must-revalidate');
+  headers.set('pragma', 'no-cache');
+  headers.set('expires', '0');
+  headers.set('x-sercomtec-admin-version', ADMIN_UI_VERSION);
+  if (contentType) headers.set('content-type', contentType);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+async function combineAssets(request, env, primaryPath, extraPath, contentType) {
+  const [primaryResponse, extraResponse] = await Promise.all([
+    env.ASSETS.fetch(assetRequest(request, primaryPath)),
+    env.ASSETS.fetch(assetRequest(request, extraPath)),
+  ]);
+  if (!primaryResponse.ok) return primaryResponse;
+  const primary = await primaryResponse.text();
+  const extra = extraResponse.ok ? await extraResponse.text() : '';
+  const headers = new Headers(primaryResponse.headers);
+  headers.delete('content-length');
+  headers.set('content-type', contentType);
+  headers.set('cache-control', 'no-store, no-cache, must-revalidate');
+  headers.set('pragma', 'no-cache');
+  headers.set('expires', '0');
+  headers.set('x-sercomtec-admin-version', ADMIN_UI_VERSION);
+  return new Response(`${primary}\n\n/* SER comtec admin extensions ${ADMIN_UI_VERSION} */\n${extra}`, {
+    status: primaryResponse.status,
+    headers,
+  });
+}
+
 async function transformAdminHtml(response) {
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
   let html = await response.text();
 
+  // Mesmo se o arquivo HTML estático estiver defasado, o formulário de bootstrap
+  // jamais fica disponível depois da inicialização do ambiente.
   if (html.includes('id="bootstrap-form"')) {
     html = html.replace(/\s*<form id="bootstrap-form"[\s\S]*?<\/form>/i, '');
-    html = html.replace('/admin/login.js', '/admin/login-secure.js');
     html = html.replace(/<p class="login-help">[\s\S]*?<\/p>/i, '<p class="login-help">Novos usuários são cadastrados exclusivamente por administradores autenticados dentro da Central de Operações.</p>');
-  }
-
-  if (html.includes('class="admin-shell"')) {
-    if (!html.includes('/admin/account-menu.css')) html = html.replace('</head>', '  <link rel="stylesheet" href="/admin/account-menu.css">\n</head>');
-    if (!html.includes('/admin/account-menu.js')) html = html.replace('</body>', '  <script src="/admin/account-menu.js" defer></script>\n</body>');
   }
 
   const headers = new Headers(response.headers);
   headers.delete('content-length');
-  headers.set('cache-control', 'no-store');
+  headers.set('cache-control', 'no-store, no-cache, must-revalidate');
+  headers.set('pragma', 'no-cache');
+  headers.set('expires', '0');
+  headers.set('x-sercomtec-admin-version', ADMIN_UI_VERSION);
   return new Response(html, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -182,12 +222,27 @@ export default {
     const url = new URL(request.url);
 
     if (url.hostname === ADMIN_HOST) {
+      // Bloqueio definitivo do cadastro inicial depois que a Central existe.
       if (url.pathname === '/api/auth/bootstrap') {
         return json({ error: 'Cadastro inicial desativado. Novos usuários devem ser criados por um administrador autenticado.' }, 404);
       }
+
       if (url.pathname === '/api/admin/profile') return handleProfile(request, env);
       const leadMatch = url.pathname.match(/^\/api\/admin\/leads\/([^/]+)$/);
       if (leadMatch && request.method === 'DELETE') return deleteLead(request, env, decodeURIComponent(leadMatch[1]));
+
+      // Força os assets administrativos atuais, sem depender do HTML estático
+      // nem de cache pré-existente no navegador/CDN.
+      if (request.method === 'GET' && url.pathname === '/admin/login.js') {
+        const response = await env.ASSETS.fetch(assetRequest(request, '/admin/login-secure.js'));
+        return withNoStore(response, 'application/javascript; charset=utf-8');
+      }
+      if (request.method === 'GET' && url.pathname === '/admin/admin.js') {
+        return combineAssets(request, env, '/admin/admin.js', '/admin/account-menu.js', 'application/javascript; charset=utf-8');
+      }
+      if (request.method === 'GET' && url.pathname === '/admin/admin-extra.css') {
+        return combineAssets(request, env, '/admin/admin-extra.css', '/admin/account-menu.css', 'text/css; charset=utf-8');
+      }
     }
 
     const response = await base.fetch(request, env, ctx);
