@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#15314a">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>SER comtec | Acesso administrativo</title>
+  <link rel="icon" type="image/png" href="/brand/icon-192.png">
+  <link rel="stylesheet" href="/admin/login.css">
+</head>
+<body>
+  <main class="login-shell">
+    <section class="brand-panel">
+      <div class="brand-lockup"><img src="/brand/icon-192.png" alt=""><span><strong>SER</strong><em>comtec</em><small>CENTRAL DE OPERAÇÕES</small></span></div>
+      <div class="brand-copy"><span>TECNOLOGIA • IA • AUTOMAÇÃO</span><h1>O cérebro operacional da SER comtec.</h1><p>Produtos, projetos, leads, suporte, conteúdo e integrações em um ambiente único e seguro.</p></div>
+      <div class="security-note"><i></i><span>Proteção externa Cloudflare Access + autenticação interna SER comtec.</span></div>
+    </section>
+
+    <section class="form-panel">
+      <div class="form-wrap">
+        <div class="mobile-brand"><img src="/brand/icon-192.png" alt=""><span><strong>SER</strong> comtec</span></div>
+        <span class="kicker" id="form-kicker">ACESSO ADMINISTRATIVO</span>
+        <h2 id="form-title">Entre na Central de Operações</h2>
+        <p id="form-intro">Use seu usuário SER comtec para continuar.</p>
+
+        <form id="login-form">
+          <label>E-mail<input id="login-email" name="email" type="email" autocomplete="username" required placeholder="seuemail@sercomtec.com.br"></label>
+          <label>Senha<input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Sua senha"></label>
+          <button type="submit">Entrar no painel <span>→</span></button>
+        </form>
+
+        <form id="bootstrap-form" hidden>
+          <div class="setup-badge">PRIMEIRO ACESSO</div>
+          <label>Seu nome<input id="setup-name" name="name" autocomplete="name" required placeholder="Nome do administrador"></label>
+          <label>E-mail<input id="setup-email" name="email" type="email" autocomplete="email" required></label>
+          <label>Crie uma senha<input id="setup-password" name="password" type="password" autocomplete="new-password" minlength="10" required placeholder="Mínimo 10 caracteres, letras e números"></label>
+          <label>Confirme a senha<input id="setup-confirm" type="password" autocomplete="new-password" minlength="10" required></label>
+          <button type="submit">Criar administrador <span>→</span></button>
+        </form>
+
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <p class="login-help">A senha nunca é enviada por e-mail nem armazenada em texto puro. O primeiro administrador só pode ser criado após autenticação válida no Cloudflare Access.</p>
+      </div>
+    </section>
+  </main>
+  <script src="/admin/login.js" defer></script>
+</body>
+</html>
