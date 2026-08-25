@@ -8,6 +8,13 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sercomtec-db",
+      "database_id": "5f539a20-744c-45c0-9a9c-62c9adccaf13"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "FILES",
