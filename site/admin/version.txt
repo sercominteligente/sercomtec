@@ -1,0 +1,3 @@
+SER COMTEC ADMIN UI
+version=2026-08-25.3
+features=secure-login,account-menu,logout,profile,lead-delete
