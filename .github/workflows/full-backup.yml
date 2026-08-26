@@ -1,0 +1,52 @@
+name: SERcomtec Full Backup
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout complete repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create source archive and Git history bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA::12}"
+          SOURCE="SERcomtec_SOURCE_${SHORT_SHA}.zip"
+          BUNDLE="SERcomtec_GIT_HISTORY_${SHORT_SHA}.bundle"
+          CHECKSUMS="SHA256SUMS_${SHORT_SHA}.txt"
+
+          git archive --format=zip --output="$SOURCE" HEAD
+          git bundle create "$BUNDLE" --all
+          sha256sum "$SOURCE" "$BUNDLE" > "$CHECKSUMS"
+
+          printf '%s\n' \
+            "SERcomtec full backup" \
+            "repository=${GITHUB_REPOSITORY}" \
+            "commit=${GITHUB_SHA}" \
+            "created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > BACKUP_INFO.txt
+
+      - name: Upload complete backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: SERcomtec-full-backup-${{ github.sha }}
+          path: |
+            SERcomtec_SOURCE_*.zip
+            SERcomtec_GIT_HISTORY_*.bundle
+            SHA256SUMS_*.txt
+            BACKUP_INFO.txt
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 6
