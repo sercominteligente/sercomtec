@@ -1,6 +1,7 @@
 import app from './entry-node-auth.js';
 
 const ADMIN_HOST = 'app.sercomtec.com.br';
+const PUBLIC_HOSTS = new Set(['sercomtec.com.br', 'www.sercomtec.com.br']);
 
 function assetRequest(request, pathname) {
   const target = new URL(request.url);
@@ -20,6 +21,13 @@ async function hasLocalSession(request, env, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // The public domain can still expose the static /admin files. Always send
+    // browser visits to the protected administrative host before any asset is
+    // served, otherwise the shell opens without working API routes.
+    if (request.method === 'GET' && PUBLIC_HOSTS.has(url.hostname) && /^\/admin(?:\/|$)/.test(url.pathname)) {
+      return Response.redirect(`https://${ADMIN_HOST}/admin/`, 302);
+    }
 
     if (url.hostname !== ADMIN_HOST || request.method !== 'GET') {
       return app.fetch(request, env, ctx);
