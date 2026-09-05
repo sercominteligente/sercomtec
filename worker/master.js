@@ -62,21 +62,71 @@ const cleanText = (value, max = 1600) => String(value ?? '').trim().slice(0, max
 const rateBuckets = new Map();
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX_REQUESTS = 20;
+const RATE_RETENTION_MS = 24 * 60 * 60 * 1000;
 
-function checkRateLimit(request) {
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const now = Date.now();
+const bytesToHex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value)));
+  return bytesToHex(new Uint8Array(digest));
+}
+
+function checkMemoryRateLimit(ip, now = Date.now()) {
   const current = rateBuckets.get(ip);
   if (!current || now - current.startedAt >= RATE_WINDOW_MS) {
     rateBuckets.set(ip, { startedAt: now, count: 1 });
     return { ok: true };
   }
-  current.count += 1;
-  if (current.count > RATE_MAX_REQUESTS) {
+  if (current.count >= RATE_MAX_REQUESTS) {
     const retryAfter = Math.max(1, Math.ceil((RATE_WINDOW_MS - (now - current.startedAt)) / 1000));
     return { ok: false, retryAfter };
   }
+  current.count += 1;
   return { ok: true };
+}
+
+async function checkRateLimit(request, env) {
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const now = Date.now();
+  if (!env.DB) return checkMemoryRateLimit(ip, now);
+
+  try {
+    const ipHash = await sha256Hex(ip);
+    const row = await env.DB.prepare(
+      'SELECT window_started_at, request_count FROM master_chat_rate_limit WHERE ip_hash=? LIMIT 1'
+    ).bind(ipHash).first();
+
+    if (!row || now - Number(row.window_started_at || 0) >= RATE_WINDOW_MS) {
+      await env.DB.prepare(`
+        INSERT INTO master_chat_rate_limit (ip_hash, window_started_at, request_count, updated_at)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(ip_hash) DO UPDATE SET
+          window_started_at=excluded.window_started_at,
+          request_count=1,
+          updated_at=excluded.updated_at
+      `).bind(ipHash, now, now).run();
+
+      if (Math.random() < 0.02) {
+        await env.DB.prepare('DELETE FROM master_chat_rate_limit WHERE updated_at < ?')
+          .bind(now - RATE_RETENTION_MS).run();
+      }
+      return { ok: true };
+    }
+
+    const count = Number(row.request_count || 0);
+    if (count >= RATE_MAX_REQUESTS) {
+      const retryAfter = Math.max(1, Math.ceil((RATE_WINDOW_MS - (now - Number(row.window_started_at))) / 1000));
+      return { ok: false, retryAfter };
+    }
+
+    await env.DB.prepare(
+      'UPDATE master_chat_rate_limit SET request_count=request_count+1, updated_at=? WHERE ip_hash=?'
+    ).bind(now, ipHash).run();
+    return { ok: true };
+  } catch (error) {
+    console.error('SER IA Master D1 rate limit failure', error);
+    return checkMemoryRateLimit(ip, now);
+  }
 }
 
 function normalizeReply(value) {
@@ -123,7 +173,7 @@ function demoReply(agentKey, message) {
 }
 
 async function handleChat(request, env) {
-  const rate = checkRateLimit(request);
+  const rate = await checkRateLimit(request, env);
   if (!rate.ok) {
     return new Response(JSON.stringify({ error: 'Muitas mensagens em pouco tempo. Aguarde alguns minutos e tente novamente.' }), {
       status: 429,
