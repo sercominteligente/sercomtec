@@ -5,9 +5,9 @@ on:
     paths:
       - 'site/master/**'
       - 'worker/master.js'
-      - 'worker/entry-master-router.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
-      - 'wrangler.jsonc'
+      - 'wrangler.master.jsonc'
+      - 'package.json'
       - '.github/workflows/master-validation.yml'
   workflow_dispatch:
 
@@ -34,7 +34,6 @@ jobs:
       - name: Validate JavaScript syntax
         run: |
           node --check worker/master.js
-          node --check worker/entry-master-router.js
           node --check site/master/app.js
 
       - name: Validate required Master assets
@@ -44,6 +43,7 @@ jobs:
           test -f site/master/app.js
           test -f site/master/brand/ser-ia-master-logo.webp
           test -f migrations/0006_master_chat_rate_limit.sql
+          test -f wrangler.master.jsonc
 
-      - name: Validate Wrangler bundle
-        run: npx --no-install wrangler deploy --dry-run --outdir .wrangler-dry-run
+      - name: Validate dedicated Master Worker bundle
+        run: npx --no-install wrangler deploy --config wrangler.master.jsonc --dry-run --outdir .wrangler-master-dry-run
