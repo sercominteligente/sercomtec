@@ -59,6 +59,25 @@ Site institucional: sercomtec.com.br
 Produto: master.sercomtec.com.br`;
 
 const cleanText = (value, max = 1600) => String(value ?? '').trim().slice(0, max);
+const rateBuckets = new Map();
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_MAX_REQUESTS = 20;
+
+function checkRateLimit(request) {
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const now = Date.now();
+  const current = rateBuckets.get(ip);
+  if (!current || now - current.startedAt >= RATE_WINDOW_MS) {
+    rateBuckets.set(ip, { startedAt: now, count: 1 });
+    return { ok: true };
+  }
+  current.count += 1;
+  if (current.count > RATE_MAX_REQUESTS) {
+    const retryAfter = Math.max(1, Math.ceil((RATE_WINDOW_MS - (now - current.startedAt)) / 1000));
+    return { ok: false, retryAfter };
+  }
+  return { ok: true };
+}
 
 function normalizeReply(value) {
   return String(value || '')
@@ -104,6 +123,19 @@ function demoReply(agentKey, message) {
 }
 
 async function handleChat(request, env) {
+  const rate = checkRateLimit(request);
+  if (!rate.ok) {
+    return new Response(JSON.stringify({ error: 'Muitas mensagens em pouco tempo. Aguarde alguns minutos e tente novamente.' }), {
+      status: 429,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'retry-after': String(rate.retryAfter),
+        'x-content-type-options': 'nosniff'
+      }
+    });
+  }
+
   let body;
   try {
     body = await request.json();
@@ -196,6 +228,10 @@ export default {
     }
 
     if (url.pathname.startsWith('/brand/')) {
+      return serveAsset(request, env, url.pathname);
+    }
+
+    if (url.pathname.startsWith('/master/')) {
       return serveAsset(request, env, url.pathname);
     }
 
