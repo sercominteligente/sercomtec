@@ -1,0 +1,49 @@
+name: SER IA Master Validation
+
+on:
+  pull_request:
+    paths:
+      - 'site/master/**'
+      - 'worker/master.js'
+      - 'worker/entry-master-router.js'
+      - 'migrations/0006_master_chat_rate_limit.sql'
+      - 'wrangler.jsonc'
+      - '.github/workflows/master-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check worker/master.js
+          node --check worker/entry-master-router.js
+          node --check site/master/app.js
+
+      - name: Validate required Master assets
+        run: |
+          test -f site/master/index.html
+          test -f site/master/styles.css
+          test -f site/master/app.js
+          test -f site/master/brand/ser-ia-master-logo.webp
+          test -f migrations/0006_master_chat_rate_limit.sql
+
+      - name: Validate Wrangler bundle
+        run: npx --no-install wrangler deploy --dry-run --outdir .wrangler-dry-run
