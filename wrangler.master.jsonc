@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "seriamaster",
+  "main": "./worker/master.js",
+  "compatibility_date": "2026-08-24",
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sercomtec-db",
+      "database_id": "5f539a20-744c-45c0-9a9c-62c9adccaf13"
+    }
+  ],
+  "vars": {
+    "OPENAI_MODEL": "gpt-5.6-luna"
+  }
+}
