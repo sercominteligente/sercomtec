@@ -6,8 +6,10 @@ on:
       - 'site/master/**'
       - 'worker/master.js'
       - 'worker/master-live.js'
+      - 'worker/master-party.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
+      - 'migrations/0008_master_roundtable_autopilot.sql'
       - 'wrangler.master.jsonc'
       - 'package.json'
       - '.github/workflows/master-validation.yml'
@@ -37,8 +39,9 @@ jobs:
         run: |
           node --check worker/master.js
           node --check worker/master-live.js
+          node --check worker/master-party.js
           node --check site/master/app.js
-          node --check site/master/bate-papo/app.js
+          node --check site/master/bate-papo/app-party.js
 
       - name: Validate required Master assets
         run: |
@@ -48,9 +51,11 @@ jobs:
           test -f site/master/brand/ser-ia-master-logo.webp
           test -f site/master/bate-papo/index.html
           test -f site/master/bate-papo/styles.css
-          test -f site/master/bate-papo/app.js
+          test -f site/master/bate-papo/party.css
+          test -f site/master/bate-papo/app-party.js
           test -f migrations/0006_master_chat_rate_limit.sql
           test -f migrations/0007_master_roundtable.sql
+          test -f migrations/0008_master_roundtable_autopilot.sql
           test -f wrangler.master.jsonc
 
       - name: Validate dedicated Master Worker bundle
