@@ -9,6 +9,7 @@ on:
       - 'worker/master-party.js'
       - 'worker/master-community.js'
       - 'worker/master-community-final.js'
+      - 'worker/master-community-bootstrap.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
       - 'migrations/0008_master_roundtable_autopilot.sql'
@@ -45,6 +46,7 @@ jobs:
           node --check worker/master-party.js
           node --check worker/master-community.js
           node --check worker/master-community-final.js
+          node --check worker/master-community-bootstrap.js
           node --check site/master/app.js
           node --check site/master/bate-papo/app-party.js
           node --check site/master/community/app.js
