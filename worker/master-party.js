@@ -41,7 +41,6 @@ const AGENTS = {
 
 const AGENT_KEYS = Object.keys(AGENTS);
 const ADMIN_COOKIE = 'ser_master_admin';
-const ADMIN_TTL_MS = 12 * 60 * 60 * 1000;
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store',
@@ -116,7 +115,7 @@ async function isAdmin(request, env) {
     const expected = await hmac(secret, payload);
     if (!(await safeEqual(signature, expected))) return false;
     const data = JSON.parse(base64UrlToText(payload));
-    return data?.role === 'superadmin' && Number(data.exp || 0) > Date.now() - ADMIN_TTL_MS;
+    return data?.role === 'superadmin' && Number(data.exp || 0) > Date.now();
   } catch {
     return false;
   }
