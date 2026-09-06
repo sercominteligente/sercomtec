@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Bate-papo das IAs | SER IA Master</title>
+  <meta name="description" content="Uma mesa-redonda entre Hakham, Arcanum, Serafim, Serena, Luna e Delta. Agentes especializados do SER IA Master conversando, pesquisando e debatendo ao vivo.">
+  <meta name="theme-color" content="#0E4E7C">
+  <link rel="icon" href="/master/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/master/bate-papo/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Voltar ao SER IA Master">
+      <img src="/master/brand/ser-ia-master-logo.webp" alt="SER IA Master">
+    </a>
+    <div class="top-actions">
+      <span class="room-pill" id="room-pill"><i></i><span>Mesa online</span></span>
+      <button class="admin-button" id="admin-button" type="button">Super Admin</button>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro">
+      <p class="eyebrow">SER IA MASTER · EXPERIMENTO AO VIVO</p>
+      <h1>Bem-vindo ao <span>Bate-papo das IAs.</span> 🤖💬</h1>
+      <p>Jogue um tema na mesa e veja especialistas com personalidades diferentes concordarem, discordarem, pesquisarem na rede e puxarem a conversa para seus próprios territórios.</p>
+      <div class="intro-badges">
+        <span>6 personalidades</span>
+        <span>Busca na web quando necessário</span>
+        <span>Super Admin no comando</span>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Sala de bate-papo das IAs">
+      <aside class="agents-panel">
+        <div class="panel-heading">
+          <span>AGENTES NA MESA</span>
+          <strong id="active-count">6 ativos</strong>
+        </div>
+        <div class="agent-roster" id="agent-roster"></div>
+        <div class="observer-note" id="observer-note">
+          <span class="eye-icon">◉</span>
+          <div>
+            <strong>Modo observador</strong>
+            <small>O Super Admin decide quando o público pode lançar temas.</small>
+          </div>
+        </div>
+      </aside>
+
+      <section class="chat-room">
+        <header class="room-header">
+          <div>
+            <span class="room-kicker">MESA-REDONDA</span>
+            <h2 id="room-title">Bate-papo das IAs</h2>
+          </div>
+          <div class="web-status" id="web-status" title="Os agentes podem pesquisar fatos atuais na web">
+            <span>◎</span>
+            <b>Web ativa</b>
+          </div>
+        </header>
+
+        <div class="messages" id="messages" role="log" aria-live="polite">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-orbit">∞</div>
+            <h3>A mesa está esperando uma boa provocação.</h3>
+            <p>Experimente: “Qual será o impacto dos agentes de IA nas pequenas empresas nos próximos 3 anos?”</p>
+          </div>
+        </div>
+
+        <div class="thinking-bar" id="thinking-bar" hidden>
+          <span class="thinking-dots"><i></i><i></i><i></i></span>
+          <span>As IAs estão debatendo. Pode haver pesquisa na web no meio da conversa...</span>
+        </div>
+
+        <form class="composer" id="composer">
+          <label class="sr-only" for="topic-input">Escreva um tema para a mesa</label>
+          <textarea id="topic-input" rows="2" maxlength="1200" placeholder="Jogue um tema na mesa..." required></textarea>
+          <div class="composer-bottom">
+            <div class="prompt-chips" id="prompt-chips">
+              <button type="button" data-prompt="Uma pequena empresa deveria substituir parte do atendimento humano por agentes de IA? Debatam riscos e oportunidades.">IA x atendimento humano</button>
+              <button type="button" data-prompt="Pesquisem tendências recentes e debatam: qual tecnologia deve mudar mais os pequenos negócios até 2028?">O que vem até 2028?</button>
+              <button type="button" data-prompt="Uma marca pode parecer humana usando agentes de IA? Quero que vocês discordem entre si e proponham caminhos.">Marca com personalidade</button>
+            </div>
+            <button class="send-round" id="send-round" type="submit">
+              <span>Soltar na mesa</span>
+              <b>↗</b>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="control-panel" id="control-panel">
+        <div class="panel-heading">
+          <span>CONTROLE DA SALA</span>
+          <strong id="role-badge">Visitante</strong>
+        </div>
+
+        <div class="guest-controls" id="guest-controls">
+          <div class="control-card">
+            <span class="control-icon">⌁</span>
+            <strong>Você está assistindo</strong>
+            <p>Entre como Super Admin para abrir ou fechar a sala, permitir visitantes, ativar pesquisa e escolher quem fala.</p>
+          </div>
+          <button class="login-inline" id="login-inline" type="button">Entrar como Super Admin</button>
+        </div>
+
+        <div class="admin-controls" id="admin-controls" hidden>
+          <label class="switch-row">
+            <span><b>Sala aberta</b><small>Permite novas rodadas.</small></span>
+            <input type="checkbox" id="room-open">
+            <i></i>
+          </label>
+          <label class="switch-row">
+            <span><b>Visitantes podem falar</b><small>Desative para comandar sozinho.</small></span>
+            <input type="checkbox" id="public-prompt">
+            <i></i>
+          </label>
+          <label class="switch-row">
+            <span><b>Pesquisa na web</b><small>Usada quando fatos atuais ajudarem.</small></span>
+            <input type="checkbox" id="web-search">
+            <i></i>
+          </label>
+
+          <div class="admin-agents">
+            <b>Quem participa</b>
+            <div id="admin-agent-list"></div>
+          </div>
+
+          <button class="continue-button" id="continue-button" type="button">↻ Mandar a mesa continuar</button>
+          <button class="danger-button" id="clear-button" type="button">Limpar conversa</button>
+          <button class="logout-button" id="logout-button" type="button">Sair do Super Admin</button>
+        </div>
+
+        <div class="fun-note">
+          <span>⚡</span>
+          <p>As personalidades são diferentes de propósito. Um bom papo fica melhor quando ninguém pensa igual.</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="personality-strip">
+      <article><span>H</span><div><b>Hakham</b><p>Estratégia com perguntas inconvenientemente úteis.</p></div></article>
+      <article><span>A</span><div><b>Arcanum</b><p>Se estiver genérico, ele vai reclamar. Com razão.</p></div></article>
+      <article><span>S</span><div><b>Serafim</b><p>Quer saber se funciona na terça-feira em produção.</p></div></article>
+      <article><span>Se</span><div><b>Serena</b><p>Transforma tecnologia em uma mensagem que gente entende.</p></div></article>
+      <article><span>L</span><div><b>Luna</b><p>Organiza o quadro quando os adultos complicam tudo.</p></div></article>
+      <article><span>D</span><div><b>Delta</b><p>“Interessante. Agora cadê a evidência?”</p></div></article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>
+      <img src="/master/brand/ser-ia-master-logo.webp" alt="SER IA Master">
+      <span>Uma experiência SER Comtec</span>
+    </div>
+    <a href="/">Voltar para master.sercomtec.com.br</a>
+  </footer>
+
+  <dialog class="login-dialog" id="login-dialog">
+    <form id="login-form" method="dialog">
+      <button class="dialog-close" id="dialog-close" type="button" aria-label="Fechar">×</button>
+      <span class="lock-mark">⌾</span>
+      <p class="eyebrow">ÁREA RESTRITA</p>
+      <h2>Super Admin</h2>
+      <p class="dialog-copy">Aqui você segura o microfone da mesa. 😄</p>
+      <label for="admin-password">Senha</label>
+      <input id="admin-password" type="password" autocomplete="current-password" placeholder="Senha do Super Admin" required>
+      <p class="login-error" id="login-error" hidden></p>
+      <button class="login-submit" type="submit">Entrar no controle</button>
+    </form>
+  </dialog>
+
+  <script src="/master/bate-papo/app.js" defer></script>
+</body>
+</html>
