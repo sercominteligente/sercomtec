@@ -135,7 +135,7 @@ Rota pública:
 /bate-papo
 ```
 
-A sala reúne Hakham, Arcanum, Serafim, Serena, Luna e Delta em uma mesa-redonda. Cada agente possui personalidade e especialidade próprias. Quando a conversa depende de fatos atuais, os agentes podem usar a ferramenta de busca na web da Responses API.
+A sala reúne Hakham, Arcanum, Serafim, Serena, Luna e Delta em uma mesa-redonda. Cada agente possui personalidade e especialidade próprias. Quando a conversa depende de fatos atuais, notícias, versões de software, produtos, empresas ou outros dados recentes, os agentes recebem acesso à ferramenta `web_search` da OpenAI Responses API e decidem automaticamente quando pesquisar. Para temas criativos ou conceituais, a busca pode ser dispensada para manter velocidade e custo sob controle.
 
 O estado da sala e as mensagens são persistidos em D1. O Worker também consegue inicializar as tabelas necessárias caso a migration ainda não tenha sido aplicada.
 
@@ -160,7 +160,16 @@ O Super Admin pode:
 - mandar a mesa continuar o debate;
 - limpar a conversa compartilhada.
 
-Visitantes entram em modo observador por padrão. A participação pública só é habilitada quando o Super Admin autoriza.
+Visitantes entram em modo observador por padrão. A participação pública só é habilitada quando o Super Admin autoriza. A sessão administrativa usa cookie `HttpOnly`, `Secure` e `SameSite=Strict` com duração de 12 horas.
+
+### Personalidades dos agentes
+
+- **Hakham:** estrategista provocador, orientado a métricas, riscos e execução.
+- **Arcanum:** diretor de arte exigente, visual e avesso a soluções genéricas.
+- **Serafim:** engenheiro pragmático, focado em produção, manutenção e arquitetura simples.
+- **Serena:** comunicadora humana, focada em clareza, público, conteúdo e conexão.
+- **Luna:** tutora curiosa e socrática, especializada em explicar e organizar ideias complexas.
+- **Delta:** pesquisador cético, orientado a evidências, probabilidades e incertezas.
 
 ### Arquivos específicos do Master
 
