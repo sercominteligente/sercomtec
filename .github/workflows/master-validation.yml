@@ -7,9 +7,12 @@ on:
       - 'worker/master.js'
       - 'worker/master-live.js'
       - 'worker/master-party.js'
+      - 'worker/master-community.js'
+      - 'worker/master-community-final.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
       - 'migrations/0008_master_roundtable_autopilot.sql'
+      - 'migrations/0009_master_community.sql'
       - 'wrangler.master.jsonc'
       - 'package.json'
       - '.github/workflows/master-validation.yml'
@@ -40,8 +43,12 @@ jobs:
           node --check worker/master.js
           node --check worker/master-live.js
           node --check worker/master-party.js
+          node --check worker/master-community.js
+          node --check worker/master-community-final.js
           node --check site/master/app.js
           node --check site/master/bate-papo/app-party.js
+          node --check site/master/community/app.js
+          node --check site/master/community/admin.js
 
       - name: Validate required Master assets
         run: |
@@ -53,9 +60,16 @@ jobs:
           test -f site/master/bate-papo/styles.css
           test -f site/master/bate-papo/party.css
           test -f site/master/bate-papo/app-party.js
+          test -f site/master/community/index.html
+          test -f site/master/community/styles.css
+          test -f site/master/community/app.js
+          test -f site/master/community/admin.html
+          test -f site/master/community/admin.css
+          test -f site/master/community/admin.js
           test -f migrations/0006_master_chat_rate_limit.sql
           test -f migrations/0007_master_roundtable.sql
           test -f migrations/0008_master_roundtable_autopilot.sql
+          test -f migrations/0009_master_community.sql
           test -f wrangler.master.jsonc
 
       - name: Validate dedicated Master Worker bundle
