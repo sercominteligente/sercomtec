@@ -1,0 +1,152 @@
+.room-statuses {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.auto-status {
+  transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+.auto-status.off {
+  opacity: .58;
+}
+
+.auto-status.pulsing {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px rgba(16, 110, 168, .08);
+}
+
+.party-switch {
+  margin-top: .15rem;
+  padding-top: .95rem;
+  border-top: 1px dashed rgba(14, 78, 124, .18);
+}
+
+.party-interval {
+  display: grid;
+  gap: .65rem;
+  padding: .85rem 0 1rem;
+}
+
+.party-interval > span {
+  display: grid;
+  gap: .22rem;
+}
+
+.party-interval b {
+  color: #173653;
+  font-size: .9rem;
+}
+
+.party-interval small {
+  color: #74889a;
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.party-interval select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(14, 78, 124, .16);
+  border-radius: 12px;
+  padding: 0 .8rem;
+  background: #fff;
+  color: #173653;
+  font: inherit;
+  font-size: .84rem;
+  outline: none;
+}
+
+.party-interval select:focus {
+  border-color: #106ea8;
+  box-shadow: 0 0 0 3px rgba(16, 110, 168, .10);
+}
+
+.autopilot-explain {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .65rem;
+  align-items: start;
+  margin: .1rem 0 1rem;
+  padding: .8rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(16, 110, 168, .08), rgba(37, 190, 232, .06));
+  border: 1px solid rgba(16, 110, 168, .13);
+}
+
+.autopilot-explain > span {
+  font-size: 1.05rem;
+}
+
+.autopilot-explain p {
+  margin: 0;
+  color: #536b80;
+  font-size: .73rem;
+  line-height: 1.45;
+}
+
+.autopilot-explain b {
+  color: #173653;
+}
+
+.delta-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.delta-card::after {
+  content: '⚠ compliance em férias';
+  position: absolute;
+  right: .7rem;
+  top: .55rem;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #8b5a00;
+  background: #fff2bf;
+  border: 1px solid rgba(139, 90, 0, .14);
+  border-radius: 999px;
+  padding: .25rem .45rem;
+}
+
+.message-row.delta .message-bubble {
+  border-color: rgba(245, 158, 11, .22);
+  background: linear-gradient(135deg, #fffdf8, #fffaf0);
+}
+
+@media (max-width: 860px) {
+  .room-header {
+    align-items: flex-start;
+  }
+
+  .room-statuses {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-statuses {
+    width: 100%;
+    gap: .4rem;
+  }
+
+  .room-statuses .web-status {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .room-statuses .web-status b {
+    white-space: nowrap;
+    font-size: .68rem;
+  }
+
+  .delta-card::after {
+    position: static;
+    display: inline-block;
+    margin: .35rem 0 0 3rem;
+  }
+}
