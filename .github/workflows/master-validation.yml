@@ -10,10 +10,12 @@ on:
       - 'worker/master-community.js'
       - 'worker/master-community-final.js'
       - 'worker/master-community-bootstrap.js'
+      - 'worker/master-studio.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
       - 'migrations/0008_master_roundtable_autopilot.sql'
       - 'migrations/0009_master_community.sql'
+      - 'migrations/0010_master_agent_studio.sql'
       - 'wrangler.master.jsonc'
       - 'package.json'
       - '.github/workflows/master-validation.yml'
@@ -47,10 +49,13 @@ jobs:
           node --check worker/master-community.js
           node --check worker/master-community-final.js
           node --check worker/master-community-bootstrap.js
+          node --check worker/master-studio.js
           node --check site/master/app.js
           node --check site/master/bate-papo/app-party.js
           node --check site/master/community/app.js
           node --check site/master/community/admin.js
+          node --check site/master/studio/dna.js
+          node --check site/master/studio/observatorio.js
 
       - name: Validate required Master assets
         run: |
@@ -68,10 +73,16 @@ jobs:
           test -f site/master/community/admin.html
           test -f site/master/community/admin.css
           test -f site/master/community/admin.js
+          test -f site/master/studio/dna.html
+          test -f site/master/studio/dna.js
+          test -f site/master/studio/observatorio.html
+          test -f site/master/studio/observatorio.js
+          test -f site/master/studio/studio.css
           test -f migrations/0006_master_chat_rate_limit.sql
           test -f migrations/0007_master_roundtable.sql
           test -f migrations/0008_master_roundtable_autopilot.sql
           test -f migrations/0009_master_community.sql
+          test -f migrations/0010_master_agent_studio.sql
           test -f wrangler.master.jsonc
 
       - name: Validate dedicated Master Worker bundle
