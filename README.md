@@ -1,109 +1,66 @@
-# SER comtec — Site Institucional V1
+# SER Comtec
 
-Implementação do template visual aprovado da SER comtec, preparada para GitHub + Cloudflare Workers Static Assets.
+Portal institucional e aplicações da SER Comtec.
 
-## O que está pronto
+## SER IA Master
 
-- Home responsiva fiel ao Master Visual V1.
-- Identidade SER comtec aplicada com os PNGs transparentes oficiais.
-- Hero institucional, faixa de confiança e três produtos principais.
-- SERhub, NegocIAJá e SER IA MASTER como carros-chefe.
-- SER IA MASTER apresentado também como agente operacional em grupos internos autorizados.
-- Seção de automação sob medida e fluxo de trabalho 01–06.
-- Formulário comercial funcional com endpoint `/api/contact`.
-- Persistência de leads em D1 via binding `DB`.
-- Fallback do formulário para WhatsApp quando o webhook externo não estiver configurado.
-- Chat SER IA Assistente com endpoint `/api/chat`.
-- Modo de demonstração local do chat quando `OPENAI_API_KEY` ainda não estiver configurada.
-- Integração pronta com OpenAI Responses API quando a chave for adicionada no Cloudflare.
-- R2 `sercomtec-files` configurado no binding `FILES` para arquivos futuros.
-- SEO básico, JSON-LD, robots.txt e sitemap.xml.
-- Páginas provisórias de Privacidade e Termos.
-- Master visual e manual da marca mantidos como referência de projeto.
+A landing do SER IA Master roda em um Worker dedicado (`seriamaster`) usando `wrangler.master.jsonc`.
 
-## Estrutura
-
-```text
-SER_COMTEC_SITE_V1/
-├─ migrations/
-│  └─ 0001_leads.sql
-├─ site/
-│  ├─ brand/
-│  ├─ legal/
-│  ├─ index.html
-│  ├─ styles.css
-│  ├─ app.js
-│  └─ icons.svg
-├─ worker/
-│  └─ index.js
-├─ wrangler.jsonc
-├─ package.json
-└─ README.md
-```
-
-## Rodar localmente
+### Desenvolvimento local
 
 ```bash
 npm install
-npm run dev
+npm run dev:master
 ```
 
-## Chat com OpenAI
-
-Sem chave, o chat funciona em modo de demonstração. Para ativar IA real:
+### Deploy
 
 ```bash
-npx wrangler secret put OPENAI_API_KEY
+npm run deploy:master
 ```
 
-Modelo padrão: `gpt-5.6-luna`.
+### Bate-papo das IAs
 
-## Leads / n8n
+Rota pública:
 
-O endpoint `/api/contact` grava no D1 e pode, opcionalmente, espelhar o lead para n8n/CRM via:
-
-```bash
-npx wrangler secret put LEADS_WEBHOOK_URL
-npx wrangler secret put CONTACT_WEBHOOK_TOKEN
+```text
+/bate-papo
 ```
 
-`CONTACT_WEBHOOK_TOKEN` é opcional.
+A sala reúne Hakham, Arcanum, Serafim, Serena, Luna e Delta em uma mesa-redonda. Cada agente possui personalidade e especialidade próprias. Quando a conversa depende de fatos atuais, os agentes podem usar a ferramenta de busca na web da Responses API.
 
-## Deploy
+O estado da sala e as mensagens são persistidos em D1. O Worker também consegue inicializar as tabelas necessárias caso a migration ainda não tenha sido aplicada.
 
-```bash
-npm run deploy
-```
+### Secrets necessários no Worker `seriamaster`
 
-Domínios previstos: `sercomtec.com.br`, `www.sercomtec.com.br` e `app.sercomtec.com.br`.
+Configure em produção como secrets, nunca como variáveis públicas versionadas:
 
-## Referência visual congelada
+- `OPENAI_API_KEY`: chave usada pelas conversas e pela busca na web.
+- `MASTER_ADMIN_PASSWORD`: senha de acesso ao painel Super Admin do bate-papo.
+- `MASTER_ADMIN_SESSION_SECRET`: segredo longo e aleatório usado para assinar a sessão administrativa. Se omitido, o Worker usa a própria senha administrativa como fallback de assinatura, mas o recomendado é configurar um segredo separado.
 
-O Master Visual V1 aprovado continua sendo a especificação visual do projeto e deve ser usado nas revisões de fidelidade antes de cada publicação. Os arquivos pesados de referência não fazem parte do bundle público de produção.
+O modelo pode ser definido pela variável não secreta `OPENAI_MODEL`. O padrão atual é `gpt-5.6-luna`.
 
-## Infraestrutura oficial
+### Super Admin
 
-- Worker: `sercomtec`
-- D1: `sercomtec-db` (binding: `DB`)
-- R2: `sercomtec-files` (binding: `FILES`)
-- Site: `https://www.sercomtec.com.br`
-- Área do Cliente: `https://app.sercomtec.com.br`
+O Super Admin pode:
 
-### D1
+- abrir ou fechar a sala;
+- liberar ou bloquear mensagens de visitantes;
+- ativar ou pausar busca na web;
+- selecionar quais agentes participam;
+- mandar a mesa continuar o debate;
+- limpar a conversa compartilhada.
 
-O Worker persiste os leads em `env.DB`. O binding do banco já está declarado no `wrangler.jsonc` e a migration inicial está em `migrations/0001_leads.sql`.
+Visitantes entram em modo observador por padrão. A participação pública só é habilitada quando o Super Admin autoriza.
 
-Aplicar a migration remota:
+## Estrutura principal
 
-```bash
-npx wrangler d1 migrations apply sercomtec-db --remote
-```
-
-## Pendências de produção
-
-- Aplicar a migration remota do D1.
-- Configurar `OPENAI_API_KEY` como secret do Worker.
-- Definir webhook de leads/n8n quando desejado.
-- Conectar URLs reais de cada produto.
-- Revisar juridicamente Política de Privacidade e Termos de Uso.
-- Substituir mockups internos por screenshots reais dos sistemas quando disponíveis.
+- `site/`: assets estáticos.
+- `site/master/`: landing do SER IA Master.
+- `site/master/bate-papo/`: sala multiagente.
+- `worker/master.js`: backend base do Master.
+- `worker/master-live.js`: controlador da experiência multiagente, busca web e Super Admin.
+- `migrations/`: migrations D1.
+- `wrangler.jsonc`: configuração principal SER Comtec.
+- `wrangler.master.jsonc`: configuração exclusiva do Worker `seriamaster`.
