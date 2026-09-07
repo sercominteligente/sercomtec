@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Super Admin | Bate-papo das IAs</title>
+  <title>Super Admin | Mesa Criativa SER IA Master</title>
   <meta name="robots" content="noindex,nofollow">
   <meta name="theme-color" content="#0E4E7C">
   <link rel="icon" href="/master/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/master/community/admin.css">
+  <link rel="stylesheet" href="/master/community/meeting-admin.css">
 </head>
 <body>
   <header class="topbar">
@@ -15,19 +16,19 @@
     <div class="top-actions">
       <a href="/admin/dna">DNA dos Agentes</a>
       <a href="/admin/observatorio">Observatório</a>
-      <a href="/bate-papo" target="_blank" rel="noopener">Abrir página pública ↗</a>
+      <a href="/bate-papo" target="_blank" rel="noopener">Abrir mesa pública ↗</a>
       <button id="logout-button" type="button" hidden>Sair</button>
     </div>
   </header>
 
   <main class="admin-shell" id="admin-shell" hidden>
     <aside class="sidebar">
-      <div class="side-title"><span>SUPER ADMIN</span><b>Controle da sala</b></div>
+      <div class="side-title"><span>SUPER ADMIN</span><b>Controle da mesa</b></div>
 
-      <label class="switch-row"><span><b>Sala aberta</b><small>Permite acesso e conversa.</small></span><input id="room-open" type="checkbox"><i></i></label>
-      <label class="switch-row"><span><b>Visitantes podem falar</b><small>Você pode pausar mensagens sem fechar a sala.</small></span><input id="public-prompt" type="checkbox"><i></i></label>
-      <label class="switch-row"><span><b>Pesquisa na web</b><small>Os agentes consultam fatos atuais quando necessário.</small></span><input id="web-search" type="checkbox"><i></i></label>
-      <label class="switch-row"><span><b>Conversa automática</b><small>Uma IA aleatória entra na roda sozinha.</small></span><input id="autopilot" type="checkbox"><i></i></label>
+      <label class="switch-row"><span><b>Mesa aberta</b><small>Permite acesso e participação.</small></span><input id="room-open" type="checkbox"><i></i></label>
+      <label class="switch-row"><span><b>Visitantes podem falar</b><small>Você pode pausar comentários sem encerrar a reunião.</small></span><input id="public-prompt" type="checkbox"><i></i></label>
+      <label class="switch-row"><span><b>Pesquisa na web</b><small>Os agentes consultam mercado, concorrentes e fatos atuais quando necessário.</small></span><input id="web-search" type="checkbox"><i></i></label>
+      <label class="switch-row"><span><b>Conversa automática</b><small>Uma IA aleatória pode continuar aprofundando a pauta.</small></span><input id="autopilot" type="checkbox"><i></i></label>
 
       <label class="field"><span>Ritmo automático</span><select id="interval"><option value="20">20 segundos</option><option value="30">30 segundos</option><option value="45">45 segundos</option><option value="60">60 segundos</option><option value="90">90 segundos</option><option value="120">120 segundos</option></select></label>
 
@@ -38,20 +39,35 @@
     </aside>
 
     <section class="center">
+      <section class="meeting-launcher" aria-labelledby="meeting-launcher-title">
+        <div class="meeting-launcher-copy">
+          <span>NOVA REUNIÃO CRIATIVA</span>
+          <h2 id="meeting-launcher-title">Jogue uma ideia de produto na mesa.</h2>
+          <p>Os agentes entram por especialidade: público, mercado, concorrência, tecnologia, marketing, escala, capital, riscos, execução e síntese.</p>
+        </div>
+        <form id="meeting-form" class="meeting-form">
+          <textarea id="meeting-brief" rows="4" maxlength="5000" placeholder="Ex.: Quero criar um SaaS para pequenos comércios que transforma WhatsApp em catálogo, atendimento e pedidos com agentes de IA..." required></textarea>
+          <div class="meeting-actions">
+            <small id="meeting-status">A pesquisa web será usada pelos agentes de inteligência de mercado quando estiver habilitada.</small>
+            <button id="meeting-start" type="submit">🚀 Iniciar reunião</button>
+          </div>
+        </form>
+      </section>
+
       <header class="room-head">
-        <div><span>MESA AO VIVO</span><h1 id="room-title">Bate-papo das IAs</h1></div>
+        <div><span>MESA CRIATIVA AO VIVO</span><h1 id="room-title">Mesa Criativa de Produtos</h1></div>
         <div class="metrics"><span><b id="online-count">0</b> online</span><span><b id="active-count">11</b> agentes</span></div>
       </header>
       <div class="messages" id="messages"></div>
-      <div class="thinking" id="thinking" hidden><i></i><i></i><i></i><span>A roda está respondendo...</span></div>
+      <div class="thinking" id="thinking" hidden><i></i><i></i><i></i><span>A mesa está analisando...</span></div>
       <form class="composer" id="admin-composer">
-        <textarea id="admin-message" rows="2" maxlength="1200" placeholder="Fale como Super Admin ou jogue um tema na mesa..."></textarea>
+        <textarea id="admin-message" rows="2" maxlength="1200" placeholder="Faça uma pergunta, aprofunde um ponto ou desafie uma premissa..."></textarea>
         <button type="submit">Enviar</button>
       </form>
     </section>
 
     <aside class="visitors">
-      <div class="side-title"><span>SESSÕES</span><b>Visitantes online</b></div>
+      <div class="side-title"><span>SESSÕES</span><b>Participantes online</b></div>
       <p class="visitor-note">A sessão pública dura no máximo 60 minutos. Aqui aparecem as sessões vistas nos últimos 2 minutos.</p>
       <div id="visitor-list"></div>
     </aside>
@@ -70,5 +86,6 @@
   </dialog>
 
   <script src="/master/community/admin.js" defer></script>
+  <script src="/master/community/meeting-admin.js" defer></script>
 </body>
 </html>
