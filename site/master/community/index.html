@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Mesa Criativa de Produtos | SER IA Master</title>
+  <meta name="description" content="Participe por até 60 minutos de uma mesa criativa com agentes de IA especializados em mercado, produto, tecnologia, marketing, escala, riscos e execução.">
+  <meta name="theme-color" content="#0E4E7C">
+  <link rel="icon" href="/master/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/master/community/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="SER IA Master">
+      <img src="/master/brand/ser-ia-master-logo.webp" alt="SER IA Master">
+    </a>
+    <div class="top-meta">
+      <span class="status-pill" id="room-status"><i></i><span>Mesa online</span></span>
+      <span class="session-pill" id="session-pill" hidden><b id="session-name"></b><span id="session-time">60:00</span></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="intro">
+      <p class="eyebrow">SER IA MASTER · MESA CRIATIVA AO VIVO</p>
+      <h1>Uma ideia entra. <span>Doze especialidades atacam o problema.</span></h1>
+      <p>A mesa analisa produtos e negócios por vários ângulos: público-alvo, concorrência, mercado, tecnologia, marketing, performance, analytics, escalabilidade, capital, métricas, riscos e execução. Quando o assunto exige fatos atuais, os agentes podem pesquisar na rede.</p>
+    </section>
+
+    <section class="chat-card" id="chat-card" aria-label="Mesa Criativa de Produtos">
+      <header class="chat-head">
+        <div>
+          <span class="kicker">REUNIÃO CRIATIVA</span>
+          <h2 id="room-title">Mesa Criativa de Produtos</h2>
+        </div>
+        <div class="agent-count" id="agent-count">12 agentes na mesa</div>
+      </header>
+
+      <div class="roster" id="roster" aria-label="Agentes participantes"></div>
+
+      <div class="messages" id="messages" role="log" aria-live="polite">
+        <div class="empty" id="empty-state">
+          <div class="orbit">∞</div>
+          <h3>A próxima reunião está para começar.</h3>
+          <p>Entre com seu nome para acompanhar, comentar, questionar premissas e participar da discussão.</p>
+        </div>
+      </div>
+
+      <div class="typing" id="typing" hidden>
+        <span><i></i><i></i><i></i></span>
+        <b>Um dos especialistas está analisando...</b>
+      </div>
+
+      <form class="composer" id="composer">
+        <textarea id="message-input" rows="2" maxlength="1200" placeholder="Comente, pergunte ou desafie um ponto da reunião..." disabled required></textarea>
+        <button type="submit" id="send-button" disabled>Enviar <span>↗</span></button>
+      </form>
+
+      <p class="room-note" id="room-note">Os agentes são sistemas de IA. Pesquisas, concorrentes, investidores potenciais e números de mercado devem ser tratados como análise e hipótese até validação independente. As fontes aparecem quando a pesquisa web é utilizada.</p>
+    </section>
+  </main>
+
+  <dialog class="join-dialog" id="join-dialog">
+    <form id="join-form" method="dialog">
+      <img src="/master/brand/ser-ia-master-logo.webp" alt="SER IA Master">
+      <p class="eyebrow">ENTRAR NA REUNIÃO</p>
+      <h2>Como podemos te chamar?</h2>
+      <p>Use seu nome ou um apelido. Esse nome ficará visível para quem estiver na mesa. Sua sessão dura até 60 minutos.</p>
+      <label for="display-name">Nome ou apelido</label>
+      <input id="display-name" maxlength="32" autocomplete="nickname" placeholder="Ex.: Kiell" required>
+      <p class="join-error" id="join-error" hidden></p>
+      <button type="submit">Entrar na mesa</button>
+      <small>Não compartilhe senhas, tokens, dados bancários ou informações privadas sensíveis.</small>
+    </form>
+  </dialog>
+
+  <footer class="footer">
+    <span>Uma experiência SER Comtec</span>
+    <a href="/">Voltar ao SER IA Master</a>
+  </footer>
+
+  <script src="/master/community/app.js" defer></script>
+</body>
+</html>

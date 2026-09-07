@@ -1,0 +1,114 @@
+name: SER IA Master Validation
+
+on:
+  pull_request:
+    paths:
+      - 'site/master/**'
+      - 'worker/master.js'
+      - 'worker/master-live.js'
+      - 'worker/master-party.js'
+      - 'worker/master-community.js'
+      - 'worker/master-community-final.js'
+      - 'worker/master-community-bootstrap.js'
+      - 'worker/master-studio.js'
+      - 'worker/master-creative-meeting.js'
+      - 'worker/master-creative-table.js'
+      - 'worker/master-professional-table.js'
+      - 'worker/master-professional-entry.js'
+      - 'worker/master-operational-memory.js'
+      - 'worker/master-lexus-entry.js'
+      - 'migrations/0006_master_chat_rate_limit.sql'
+      - 'migrations/0007_master_roundtable.sql'
+      - 'migrations/0008_master_roundtable_autopilot.sql'
+      - 'migrations/0009_master_community.sql'
+      - 'migrations/0010_master_agent_studio.sql'
+      - 'migrations/0011_master_creative_meetings.sql'
+      - 'migrations/0012_master_professional_meetings.sql'
+      - 'migrations/0013_master_council_memory.sql'
+      - 'migrations/0014_master_operational_memory.sql'
+      - 'migrations/0015_master_lexus.sql'
+      - 'wrangler.master.jsonc'
+      - 'package.json'
+      - '.github/workflows/master-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check worker/master.js
+          node --check worker/master-live.js
+          node --check worker/master-party.js
+          node --check worker/master-community.js
+          node --check worker/master-community-final.js
+          node --check worker/master-community-bootstrap.js
+          node --check worker/master-studio.js
+          node --check worker/master-creative-meeting.js
+          node --check worker/master-creative-table.js
+          node --check worker/master-professional-table.js
+          node --check worker/master-professional-entry.js
+          node --check worker/master-operational-memory.js
+          node --check worker/master-lexus-entry.js
+          node --check site/master/app.js
+          node --check site/master/bate-papo/app-party.js
+          node --check site/master/community/app.js
+          node --check site/master/community/admin.js
+          node --check site/master/community/meeting-admin.js
+          node --check site/master/studio/dna.js
+          node --check site/master/studio/observatorio.js
+
+      - name: Validate required Master assets
+        run: |
+          test -f site/master/index.html
+          test -f site/master/styles.css
+          test -f site/master/app.js
+          test -f site/master/brand/ser-ia-master-logo.webp
+          test -f site/master/bate-papo/index.html
+          test -f site/master/bate-papo/styles.css
+          test -f site/master/bate-papo/party.css
+          test -f site/master/bate-papo/app-party.js
+          test -f site/master/community/index.html
+          test -f site/master/community/styles.css
+          test -f site/master/community/app.js
+          test -f site/master/community/admin.html
+          test -f site/master/community/admin.css
+          test -f site/master/community/admin.js
+          test -f site/master/community/meeting-admin.css
+          test -f site/master/community/meeting-admin.js
+          test -f site/master/studio/dna.html
+          test -f site/master/studio/dna.js
+          test -f site/master/studio/observatorio.html
+          test -f site/master/studio/observatorio.js
+          test -f site/master/studio/studio.css
+          test -f migrations/0006_master_chat_rate_limit.sql
+          test -f migrations/0007_master_roundtable.sql
+          test -f migrations/0008_master_roundtable_autopilot.sql
+          test -f migrations/0009_master_community.sql
+          test -f migrations/0010_master_agent_studio.sql
+          test -f migrations/0011_master_creative_meetings.sql
+          test -f migrations/0012_master_professional_meetings.sql
+          test -f migrations/0013_master_council_memory.sql
+          test -f migrations/0014_master_operational_memory.sql
+          test -f migrations/0015_master_lexus.sql
+          test -f wrangler.master.jsonc
+
+      - name: Validate dedicated Master Worker bundle
+        run: npx --no-install wrangler deploy --config wrangler.master.jsonc --dry-run --outdir .wrangler-master-dry-run

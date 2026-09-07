@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:master": "wrangler dev --config wrangler.master.jsonc",
     "build": "echo \"SER comtec static assets: no compile step required\"",
-    "deploy": "wrangler d1 migrations apply sercomtec-db --remote && wrangler deploy"
+    "deploy": "wrangler d1 migrations apply sercomtec-db --remote && wrangler deploy",
+    "deploy:master": "wrangler d1 migrations apply sercomtec-db --remote --config wrangler.master.jsonc && wrangler deploy --config wrangler.master.jsonc"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"

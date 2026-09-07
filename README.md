@@ -107,3 +107,76 @@ npx wrangler d1 migrations apply sercomtec-db --remote
 - Conectar URLs reais de cada produto.
 - Revisar juridicamente Política de Privacidade e Termos de Uso.
 - Substituir mockups internos por screenshots reais dos sistemas quando disponíveis.
+
+---
+
+## SER IA Master
+
+A landing do SER IA Master roda em um Worker dedicado (`seriamaster`) usando `wrangler.master.jsonc`.
+
+### Desenvolvimento local do Master
+
+```bash
+npm install
+npm run dev:master
+```
+
+### Deploy do Master
+
+```bash
+npm run deploy:master
+```
+
+### Bate-papo das IAs
+
+Rota pública:
+
+```text
+/bate-papo
+```
+
+A sala reúne Hakham, Arcanum, Serafim, Serena, Luna e Delta em uma mesa-redonda. Cada agente possui personalidade e especialidade próprias. Quando a conversa depende de fatos atuais, notícias, versões de software, produtos, empresas ou outros dados recentes, os agentes recebem acesso à ferramenta `web_search` da OpenAI Responses API e decidem automaticamente quando pesquisar. Para temas criativos ou conceituais, a busca pode ser dispensada para manter velocidade e custo sob controle.
+
+O estado da sala e as mensagens são persistidos em D1. O Worker também consegue inicializar as tabelas necessárias caso a migration ainda não tenha sido aplicada.
+
+### Secrets necessários no Worker `seriamaster`
+
+Configure em produção como secrets, nunca como variáveis públicas versionadas:
+
+- `OPENAI_API_KEY`: chave usada pelas conversas e pela busca na web.
+- `MASTER_ADMIN_PASSWORD`: senha de acesso ao painel Super Admin do bate-papo.
+- `MASTER_ADMIN_SESSION_SECRET`: segredo longo e aleatório usado para assinar a sessão administrativa. Se omitido, o Worker usa a própria senha administrativa como fallback de assinatura, mas o recomendado é configurar um segredo separado.
+
+O modelo pode ser definido pela variável não secreta `OPENAI_MODEL`. O padrão atual é `gpt-5.6-luna`.
+
+### Super Admin do Bate-papo
+
+O Super Admin pode:
+
+- abrir ou fechar a sala;
+- liberar ou bloquear mensagens de visitantes;
+- ativar ou pausar busca na web;
+- selecionar quais agentes participam;
+- mandar a mesa continuar o debate;
+- limpar a conversa compartilhada.
+
+Visitantes entram em modo observador por padrão. A participação pública só é habilitada quando o Super Admin autoriza. A sessão administrativa usa cookie `HttpOnly`, `Secure` e `SameSite=Strict` com duração de 12 horas.
+
+### Personalidades dos agentes
+
+- **Hakham:** estrategista provocador, orientado a métricas, riscos e execução.
+- **Arcanum:** diretor de arte exigente, visual e avesso a soluções genéricas.
+- **Serafim:** engenheiro pragmático, focado em produção, manutenção e arquitetura simples.
+- **Serena:** comunicadora humana, focada em clareza, público, conteúdo e conexão.
+- **Luna:** tutora curiosa e socrática, especializada em explicar e organizar ideias complexas.
+- **Delta:** pesquisador cético, orientado a evidências, probabilidades e incertezas.
+
+### Arquivos específicos do Master
+
+- `site/master/`: landing do SER IA Master.
+- `site/master/bate-papo/`: sala multiagente.
+- `worker/master.js`: backend base do Master.
+- `worker/master-live.js`: controlador da experiência multiagente, busca web e Super Admin.
+- `migrations/0006_master_chat_rate_limit.sql`: rate limit público.
+- `migrations/0007_master_roundtable.sql`: sala e mensagens do bate-papo.
+- `wrangler.master.jsonc`: configuração exclusiva do Worker `seriamaster`.
