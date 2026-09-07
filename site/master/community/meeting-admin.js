@@ -91,10 +91,9 @@
       }
       next.push(file);
     }
-    selectedImages = [...selectedImages, ...next].slice(0, MAX_IMAGES);
-    if (files.length + selectedImages.length > MAX_IMAGES) {
-      setStatus('A reunião aceita até 4 imagens por vez.', 'is-error');
-    }
+    const available = Math.max(0, MAX_IMAGES - selectedImages.length);
+    if (next.length > available) setStatus('A reunião aceita até 4 imagens por vez.', 'is-error');
+    selectedImages = [...selectedImages, ...next.slice(0, available)];
     imagesInput.value = '';
     renderImages();
   }
