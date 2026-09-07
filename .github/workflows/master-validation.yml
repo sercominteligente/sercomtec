@@ -13,12 +13,15 @@ on:
       - 'worker/master-studio.js'
       - 'worker/master-creative-meeting.js'
       - 'worker/master-creative-table.js'
+      - 'worker/master-professional-table.js'
+      - 'worker/master-professional-entry.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
       - 'migrations/0008_master_roundtable_autopilot.sql'
       - 'migrations/0009_master_community.sql'
       - 'migrations/0010_master_agent_studio.sql'
       - 'migrations/0011_master_creative_meetings.sql'
+      - 'migrations/0012_master_professional_meetings.sql'
       - 'wrangler.master.jsonc'
       - 'package.json'
       - '.github/workflows/master-validation.yml'
@@ -55,6 +58,8 @@ jobs:
           node --check worker/master-studio.js
           node --check worker/master-creative-meeting.js
           node --check worker/master-creative-table.js
+          node --check worker/master-professional-table.js
+          node --check worker/master-professional-entry.js
           node --check site/master/app.js
           node --check site/master/bate-papo/app-party.js
           node --check site/master/community/app.js
@@ -92,6 +97,7 @@ jobs:
           test -f migrations/0009_master_community.sql
           test -f migrations/0010_master_agent_studio.sql
           test -f migrations/0011_master_creative_meetings.sql
+          test -f migrations/0012_master_professional_meetings.sql
           test -f wrangler.master.jsonc
 
       - name: Validate dedicated Master Worker bundle
