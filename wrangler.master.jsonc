@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "seriamaster",
-  "main": "./worker/master-creative-meeting.js",
+  "main": "./worker/master-creative-table.js",
   "compatibility_date": "2026-08-24",
   "assets": {
     "directory": "./site",
