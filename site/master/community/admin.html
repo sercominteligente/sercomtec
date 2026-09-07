@@ -41,15 +41,62 @@
     <section class="center">
       <section class="meeting-launcher" aria-labelledby="meeting-launcher-title">
         <div class="meeting-launcher-copy">
-          <span>NOVA REUNIÃO CRIATIVA</span>
-          <h2 id="meeting-launcher-title">Jogue uma ideia de produto na mesa.</h2>
-          <p>Os agentes entram por especialidade: público, mercado, concorrência, tecnologia, marketing, escala, capital, riscos, execução e síntese.</p>
+          <span>NOVA REUNIÃO PROFISSIONAL</span>
+          <h2 id="meeting-launcher-title">Jogue um briefing completo na mesa.</h2>
+          <p>Escolha quem assume a coordenação. A equipe analisa mercado, concorrência, produto, público, tecnologia, marketing, escala, capital, riscos e execução. O coordenador fecha a reunião com relatório detalhado.</p>
         </div>
+
         <form id="meeting-form" class="meeting-form">
-          <textarea id="meeting-brief" rows="4" maxlength="5000" placeholder="Ex.: Quero criar um SaaS para pequenos comércios que transforma WhatsApp em catálogo, atendimento e pedidos com agentes de IA..." required></textarea>
+          <div class="meeting-meta-grid">
+            <label class="meeting-field">
+              <span>Projeto / produto</span>
+              <input id="meeting-project" maxlength="120" placeholder="Ex.: NegocIAJá!">
+            </label>
+            <label class="meeting-field">
+              <span>Coordenador da reunião</span>
+              <select id="meeting-chair">
+                <option value="hakham">Hakham · Estratégia e síntese</option>
+                <option value="polaris">Polaris · Governança e execução</option>
+                <option value="orion">Orion · Mercado e cenários</option>
+                <option value="sirius">Sirius · Dados e riscos</option>
+                <option value="delta">Delta · Red team e evidências</option>
+                <option value="serafim">Serafim · Tecnologia e escala</option>
+                <option value="serena">Serena · Marketing e go-to-market</option>
+                <option value="arcanum">Arcanum · Branding e diferenciação</option>
+                <option value="lyra">Lyra · Público e proposta de valor</option>
+                <option value="nova">Nova · MVP e experimentação</option>
+                <option value="luna">Luna · Jornada e adoção</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="meeting-field meeting-brief-field" for="meeting-brief">
+            <span>Briefing da reunião</span>
+            <textarea id="meeting-brief" rows="9" maxlength="50000" placeholder="Cole aqui um briefing completo: problema, proposta, público, contexto, concorrentes conhecidos, requisitos, integrações, modelo de negócio, restrições, números, dúvidas e tudo que a equipe precisa considerar..." required></textarea>
+            <small class="char-counter"><b id="meeting-char-count">0</b> / 50.000 caracteres</small>
+          </label>
+
+          <div class="meeting-tools">
+            <label class="memory-toggle">
+              <input id="meeting-memory" type="checkbox" checked>
+              <span><b>Memória extensa do projeto</b><small>Reutiliza decisões e aprendizados das reuniões anteriores com o mesmo nome de projeto.</small></span>
+            </label>
+
+            <label class="image-picker" for="meeting-images">
+              <input id="meeting-images" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+              <span>🖼️ Enviar imagens para visão</span>
+              <small>Até 4 imagens · JPG, PNG ou WebP · máximo 4 MB cada</small>
+            </label>
+          </div>
+
+          <div id="meeting-image-preview" class="meeting-image-preview" aria-live="polite"></div>
+
           <div class="meeting-actions">
-            <small id="meeting-status">A pesquisa web será usada pelos agentes de inteligência de mercado quando estiver habilitada.</small>
-            <button id="meeting-start" type="submit">🚀 Iniciar reunião</button>
+            <small id="meeting-status">A equipe usará pesquisa web quando necessário. As imagens serão analisadas uma vez e convertidas em contexto visual compartilhado.</small>
+            <div class="meeting-action-buttons">
+              <a id="meeting-report" class="report-button" href="#" target="_blank" rel="noopener" hidden>📄 Baixar relatório PDF</a>
+              <button id="meeting-start" type="submit">🚀 Iniciar reunião</button>
+            </div>
           </div>
         </form>
       </section>
@@ -61,7 +108,7 @@
       <div class="messages" id="messages"></div>
       <div class="thinking" id="thinking" hidden><i></i><i></i><i></i><span>A mesa está analisando...</span></div>
       <form class="composer" id="admin-composer">
-        <textarea id="admin-message" rows="2" maxlength="1200" placeholder="Faça uma pergunta, aprofunde um ponto ou desafie uma premissa..."></textarea>
+        <textarea id="admin-message" rows="2" maxlength="12000" placeholder="Faça uma pergunta, aprofunde um ponto, dê uma nova orientação ao coordenador ou desafie uma premissa..."></textarea>
         <button type="submit">Enviar</button>
       </form>
     </section>
