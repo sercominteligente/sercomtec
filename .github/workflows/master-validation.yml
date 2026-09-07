@@ -12,6 +12,7 @@ on:
       - 'worker/master-community-bootstrap.js'
       - 'worker/master-studio.js'
       - 'worker/master-creative-meeting.js'
+      - 'worker/master-creative-table.js'
       - 'migrations/0006_master_chat_rate_limit.sql'
       - 'migrations/0007_master_roundtable.sql'
       - 'migrations/0008_master_roundtable_autopilot.sql'
@@ -53,6 +54,7 @@ jobs:
           node --check worker/master-community-bootstrap.js
           node --check worker/master-studio.js
           node --check worker/master-creative-meeting.js
+          node --check worker/master-creative-table.js
           node --check site/master/app.js
           node --check site/master/bate-papo/app-party.js
           node --check site/master/community/app.js
